@@ -1,0 +1,24 @@
+/**
+ * Device Class Identification:
+ * 
+ * Class Name   :	TangoSpec
+ * Contact      :	andy.gotz@esrf.fr
+ * Class Family :	Sequencer
+ * Platform     :	All Platforms
+ * Bus          :	Not Applicable
+ * Manufacturer :	none
+ * Reference    :	
+ */
+
+/**
+ * Device Class Identification:
+ *
+ * Class Name   :       TangoSpecSharedMemory
+ * Contact      :       andy.gotz@esrf.fr
+ * Class Family :       Sequencer
+ * Platform     :       All Platforms
+ * Bus          :       Not Applicable
+ * Manufacturer :       none
+ * Reference    :
+ */
+
