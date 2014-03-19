@@ -186,11 +186,11 @@ class TangoSpec(Device):
     # Tango Commands
     # -------------------------------------------------------------------------
 
-     def _execute_cmd(self, cmd, wait=True):
+    def _execute_cmd(self, cmd, wait=True):
         try:
-            spec_cmd = TgGevent.get_proxy(SpecCommand.SpecCommand, None, self.spec)
+            spec_cmd = TgGevent.get_proxy(SpecCommand.SpecCommand, None, self.Spec)
         except SpecClientError, error:
-            self.error_stream("Spec %s error : %s"%(self.spec, error))
+            self.error_stream("Spec %s error : %s"%(self.Spec, error))
 
         if wait:
             return str(spec_cmd.executeCommand(cmd))
