@@ -13,7 +13,7 @@
 
 from functools import partial
 
-from PyTango import Util, Attr, DevState, CmdArgType, AttrWriteType, DebugIt
+from PyTango import Util, DevState, AttrWriteType, DebugIt
 from PyTango import MultiAttrProp
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
@@ -115,7 +115,7 @@ class TangoSpecMotor(Device):
                 self.error_stream(status)
                 return
             else:
-                spec_version = tango_specs[0].get_spec().specVersion
+                spec_version = tango_specs[0].Spec
                 motor = self.SpecMotor
 
         self.__spec_version_name = spec_version
@@ -147,7 +147,6 @@ class TangoSpecMotor(Device):
         self.info_stream(msg)
         self.set_state(DevState.ON)
         self.set_status(msg)
-        self.__updateLimits()
 
     def __motorDisconnected(self):
         self.info_stream("motor disconnected")
