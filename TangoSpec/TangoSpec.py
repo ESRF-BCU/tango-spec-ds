@@ -18,30 +18,17 @@ from functools import partial
 from PyTango import Util, Attr, DevState, CmdArgType, AttrWriteType, DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
+import TgGevent
 
-_WITH_GEVENT = False
-
-if _WITH_GEVENT:
-    from SpecClient_gevent import SpecEventsDispatcher
-    from SpecClient_gevent.Spec import Spec
-    from SpecClient_gevent.SpecVariable import SpecVariableA
-    from SpecClient_gevent.SpecClientError import SpecClientError
-    from SpecClient_gevent import SpecConnectionsManager
-    ConnectionManager = SpecConnectionsManager.SpecConnectionsManager
-else:
-    from SpecClient import SpecEventsDispatcher
-    from SpecClient.Spec import Spec
-    from SpecClient.SpecVariable import SpecVariableA
-    from SpecClient.SpecClientError import SpecClientError
-    from SpecClient import SpecConnectionsManager
-
-    ConnectionManager = partial(SpecConnectionsManager.SpecConnectionsManager,
-                                pollingThread=False)
+from SpecClient_gevent import Spec
+from SpecClient_gevent import SpecCommand
+from SpecClient_gevent import SpecVariable
+from SpecClient_gevent import SpecEventsDispatcher
+from SpecClient_gevent.SpecClientError import SpecClientError
 
 #: read-only spectrum string attribute helper
 str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
                       max_dim_x=512)
-
 
 #TODO:
 # 1 - tests!
@@ -81,10 +68,9 @@ class TangoSpec(Device):
             text = "{0:12}".format(output)
         else:
             text = str(output)
+        # it seems we can't push event while server
+        # is executing a command
         self.push_change_event("Output", text)
-
-    def get_spec_manager(self):
-        return self.__spec_mgr
 
     def get_spec(self):
         return self.__spec
@@ -110,8 +96,8 @@ class TangoSpec(Device):
         self.__spec_mgr = None
         self.__spec = None
         self.__spec_tty = None
-        self.__variables = {}
-        self.__spec_mgr = ConnectionManager()
+        self.__variables = dict()
+        self.__executing_commands = dict()
         
         try:
             spec_host, spec_session = spec_name.split(":")
@@ -126,11 +112,14 @@ class TangoSpec(Device):
 
         # Create asynchronous spec access to get the data
         try:
-            self.__spec = Spec(spec_name, timeout=1000)
-            self.__spec_tty = SpecVariableA("output/tty", spec_name,
-                                            prefix=False,
-                                            dispatchMode=SpecEventsDispatcher.FIREEVENT,
-                                            callbacks={"update" : self.update_output})
+            self.__spec = TgGevent.get_proxy(Spec.Spec,
+                                             spec_name,
+                                             timeout=1000)
+            self.__spec_tty = TgGevent.get_proxy(SpecVariable.SpecVariableA,
+                                                 "output/tty", spec_name,
+                                                 prefix=False,
+                                                 dispatchMode=SpecEventsDispatcher.FIREEVENT,
+                                                 callbacks={"update" : self.update_output})
             self.set_state(DevState.ON)
             self.set_status("Connected to spec " + spec_name)
         except SpecClientError as spec_error:
@@ -149,11 +138,6 @@ class TangoSpec(Device):
                 self.set_state(DevState.FAULT)
                 self.set_status(self.get_status + "\n" + msg)
                 self.error_stream(msg)
-
-        if not _WITH_GEVENT:
-            if not "specclientpoll" in map(str.lower, self.get_polled_cmd()):
-                self.info_stream("Started auto polling freq=100ms")
-                self.poll_command("specClientPoll", 100)
 
     @DebugIt()
     def read_SpecMotorList(self):
@@ -201,19 +185,44 @@ class TangoSpec(Device):
     # -------------------------------------------------------------------------
     # Tango Commands
     # -------------------------------------------------------------------------
-        
-    @command(dtype_in=[str], dtype_out=str)
-    def ExecuteCmd(self, commands):
-        try:
-            for cmd in commands:
-                spec_cmd = "self.__spec.%s" % cmd
-                argout = eval(spec_cmd)
-                #print "argout = ",argout
-        except SpecClientError as error:
-            
-            print "Spec error : ", self.spec, error
 
-        return "argout"
+     def _execute_cmd(self, cmd, wait=True):
+        try:
+            spec_cmd = TgGevent.get_proxy(SpecCommand.SpecCommand, None, self.spec)
+        except SpecClientError, error:
+            self.error_stream("Spec %s error : %s"%(self.spec, error))
+
+        if wait:
+            return str(spec_cmd.executeCommand(cmd))
+        else:
+            spec_cmd.executeCommand(cmd, wait=False)
+            self.__executing_commands[id(spec_cmd)]=spec_cmd
+            return id(spec_cmd)
+        
+    @command(dtype_in=str, dtype_out=str)
+    def ExecuteCmd(self, command):
+        return self._execute_cmd(command)
+
+    @command(dtype_in=str, dtype_out=int)
+    def ExecuteCmdA(self, command):
+        return self._execute_cmd(command, wait=False)    
+
+    @command(dtype_in=int, dtype_out=str)
+    def GetReply(self, cmd_id):
+        spec_cmd = self.__executing_commands[cmd_id]
+        del self.__executing_commands[cmd_id]
+        reply = spec_cmd.waitReply()
+        if reply.error:
+            raise RuntimeError(reply.error)
+        else:
+            return str(reply.data)
+
+    @command(dtype_in=int, dtype_out=bool)
+    def IsReplyArrived(self, cmd_id):
+        if not cmd_id in self.__executing_commands:
+            return True
+        spec_cmd = self.__executing_commands[cmd_id]
+        return spec_cmd.isReplyArrived()
 
     @command(dtype_in=str, doc_in="spec variable name")
     def AddVariable(self, variable):
@@ -306,12 +315,6 @@ class TangoSpec(Device):
         else:
             raise KeyError("No counter with name '%s'" % counter_name)
         
-    @command
-    def specClientPoll(self):
-        if _WITH_GEVENT:
-            pass
-        else:
-            self.__spec_mgr.poll()
 
     def __addVariable(self, variable):
 
@@ -319,9 +322,10 @@ class TangoSpec(Device):
             self.debug_stream("update variable '%s'", variable)
             self.push_change_event(variable, json.dumps(value))
                 
-        v = SpecVariableA(variable, self.Spec,
-                          dispatchMode=SpecEventsDispatcher.FIREEVENT,
-                          callbacks={"update": update})
+        v = TgGevent.get_proxy(SpecVariable.SpecVariableA,
+                               variable, self.Spec,
+                               dispatchMode=SpecEventsDispatcher.FIREEVENT,
+                               callbacks={"update": update})
         self.__variables[variable] = v, update
 
         v_attr = Attr(variable, CmdArgType.DevString, AttrWriteType.READ_WRITE)

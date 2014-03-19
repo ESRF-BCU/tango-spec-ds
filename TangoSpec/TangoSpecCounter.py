@@ -14,16 +14,10 @@
 from PyTango import Util, Attr, DevState, CmdArgType, AttrWriteType, DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
+import TgGevent
 
-_WITH_GEVENT = False
-
-if _WITH_GEVENT:
-    from SpecClient_gevent.SpecCounter import SpecCounter
-    from SpecClient_gevent.SpecClientError import SpecClientError
-else:
-    from SpecClient.SpecCounter import SpecCounter
-    from SpecClient.SpecClientError import SpecClientError
-
+from SpecClient_gevent.SpecCounter import SpecCounter
+from SpecClient_gevent.SpecClientError import SpecClientError
 
 class TangoSpecCounter(Device):
     """A TANGO SPEC counter device based on SpecClient."""
@@ -93,7 +87,9 @@ class TangoSpecCounter(Device):
         self.__spec_counter_name = counter
         
         try:
-            self.__spec_counter = SpecCounter(counter, specVersion=spec_version)
+            self.__spec_counter = TgGevent.get_proxy(SpecCounter,
+                                                     counter,
+                                                     spec_version)
             msg = "Connected to counter " + self.SpecCounter
             self.set_state(DevState.ON)
             self.set_status(msg)

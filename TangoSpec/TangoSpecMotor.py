@@ -17,26 +17,18 @@ from PyTango import Util, Attr, DevState, CmdArgType, AttrWriteType, DebugIt
 from PyTango import MultiAttrProp
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
+import TgGevent
 
-_WITH_GEVENT = False
-
-if _WITH_GEVENT:
-    from SpecClient_gevent.SpecMotor import SpecMotorA
-    from SpecClient_gevent.SpecClientError import SpecClientError
-else:
-    from SpecClient.SpecMotor import SpecMotorA
-    from SpecClient.SpecClientError import SpecClientError
+from SpecClient_gevent import SpecMotor
+from SpecClient_gevent.SpecClientError import SpecClientError
     
-NOTINITIALIZED, UNUSABLE, READY, MOVESTARTED, MOVING, ONLIMIT = range(6)
-NOLIMIT, LOWLIMIT, HIGHLIMIT = 0, 2, 4
-
 _SS_2_TS = {
-    NOTINITIALIZED: DevState.UNKNOWN,
-    UNUSABLE: DevState.UNKNOWN,
-    READY: DevState.ON,
-    MOVESTARTED: DevState.MOVING,
-    MOVING: DevState.MOVING,
-    ONLIMIT: DevState.ALARM,
+    SpecMotor.NOTINITIALIZED: DevState.UNKNOWN,
+    SpecMotor.UNUSABLE: DevState.UNKNOWN,
+    SpecMotor.READY: DevState.ON,
+    SpecMotor.MOVESTARTED: DevState.MOVING,
+    SpecMotor.MOVING: DevState.MOVING,
+    SpecMotor.ONLIMIT: DevState.ALARM,
 }
 
 #: read-write scalar float attribute helper
@@ -135,11 +127,12 @@ class TangoSpecMotor(Device):
                     motorPositionChanged=self.__motorPositionChanged,
                     motorStateChanged=self.__motorStateChanged,
                     motorLimitsChanged=self.__updateLimits)
-            self.__spec_motor = SpecMotorA(motor, specVersion=spec_version,
-                                           callbacks=cb)
+            self.__spec_motor = TgGevent.get_proxy(SpecMotor.SpecMotorA,
+                                                   motor, spec_version,
+                                                   callbacks=cb)
             # getting the limits triggers the limitsChanged callback.
             # interesting...
-            self.__spec_motor.getLimits()
+            #self.__spec_motor.getLimits()
         except SpecClientError as spec_error:
             status = "Error connecting to Spec motor: %s" % str(spec_error)
             self.set_state(DevState.FAULT)
