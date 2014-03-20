@@ -1,4 +1,5 @@
 from gevent import _threading
+import threading
 import gevent.event
 import sys
 import atexit
@@ -8,6 +9,7 @@ import functools
 main_queue = _threading.Queue()
 gevent_thread_lock = _threading.Lock()
 gevent_thread_started = _threading.Event()
+MAIN_THREAD = threading.current_thread()
 gevent_thread = None
 read_event_watcher = None
 objs = {}
@@ -100,10 +102,12 @@ class threadSafeRequest:
         self.result = None
 
     def __call__(self, *args, **kwargs):
-        self.queue.put((self, args, kwargs))
-        self.watcher.send()
-        self.done_event.wait()
-
+        if threading.current_thread() == MAIN_THREAD:
+            self.queue.put((self, args, kwargs))
+            self.watcher.send()
+            self.done_event.wait()
+        else:
+            deal_with_job(self, args, kwargs)
         if isinstance(self.result, CallException):
             raise self.result.error_string, None, self.result.tb
         return self.result
