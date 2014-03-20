@@ -163,10 +163,10 @@ class TangoSpecMotor(Device):
         self.push_change_event("State", state)
 
     @DebugIt()
-    def __updateLimits(self, limits=None):
+    def __updateLimits(self):
         if not self.__spec_motor:
             return
-        limits = limits or self.__spec_motor.getLimits()
+        limits = self.__spec_motor.getLimits()
         pos_attr = self.get_device_attr().get_attr_by_name("Position")
         multi_prop = MultiAttrProp()
         multi_prop = pos_attr.get_properties(multi_prop)
