@@ -130,9 +130,6 @@ class TangoSpecMotor(Device):
             self.__spec_motor = TgGevent.get_proxy(SpecMotor.SpecMotorA,
                                                    motor, spec_version,
                                                    callbacks=cb)
-            # getting the limits triggers the limitsChanged callback.
-            # interesting...
-            #self.__spec_motor.getLimits()
         except SpecClientError as spec_error:
             status = "Error connecting to Spec motor: %s" % str(spec_error)
             self.set_state(DevState.FAULT)
@@ -160,7 +157,8 @@ class TangoSpecMotor(Device):
         self.info_stream("motor state changed %s", state)
         self.set_state(state)
         self.set_status("Motor is now %s" % (str(state,)))
-        self.push_change_event("State", state)
+        # calling this blocks forever :( Don't know why for the moment
+        #self.push_change_event("State", state)
 
     @DebugIt()
     def __updateLimits(self):
