@@ -12,11 +12,11 @@
 """A TANGO device server for SPEC based on SpecClient."""
 
 try:
-    from TangoSpec.TangoSpec import main
+    from TangoSpec import run
 except ImportError:
     import os
     import sys
     sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
-    from TangoSpec.TangoSpec import main
+    from TangoSpec import run
 
-main()
+run()

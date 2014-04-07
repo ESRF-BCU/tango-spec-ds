@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #------------------------------------------------------------------------------
 # This file is part of the Tango SPEC device server
@@ -9,27 +9,20 @@
 # See LICENSE.txt for more info.
 #------------------------------------------------------------------------------
 
-"""A TANGO device server for SPEC based on SpecClient."""
+"""A TANGO motor device for SPEC based on SpecClient."""
 
 from functools import partial
 
-from PyTango import Util, DevState, AttrWriteType, DebugIt
+from PyTango import Util, DevState, DispLevel, AttrWriteType, DebugIt
 from PyTango import MultiAttrProp
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
-import TgGevent
 
 from SpecClient_gevent import SpecMotor
 from SpecClient_gevent.SpecClientError import SpecClientError
-    
-_SS_2_TS = {
-    SpecMotor.NOTINITIALIZED: DevState.UNKNOWN,
-    SpecMotor.UNUSABLE: DevState.UNKNOWN,
-    SpecMotor.READY: DevState.ON,
-    SpecMotor.MOVESTARTED: DevState.MOVING,
-    SpecMotor.MOVING: DevState.MOVING,
-    SpecMotor.ONLIMIT: DevState.ALARM,
-}
+
+from . import TgGevent
+from .TangoSpecCommon import SpecState_2_TangoState, execute, switch_state
 
 #: read-write scalar float attribute helper
 float_rw_mem_attr = partial(attribute, dtype=float, memorized=True,
@@ -47,21 +40,28 @@ class TangoSpecMotor(Device):
     Position = float_rw_mem_attr(doc="motor position")
 
     DialPosition = attribute(dtype=float, access=AttrWriteType.READ,
-                             doc="motor dial position")
+                             doc="motor dial position",
+                             display_level=DispLevel.EXPERT)
 
     Sign = attribute(dtype=int, access=AttrWriteType.READ_WRITE,
-                     doc="motor sign")
+                     display_level=DispLevel.EXPERT, doc="motor sign")
 
-    Offset = float_rw_mem_attr(doc="motor offset")
+    Offset = float_rw_mem_attr(display_level=DispLevel.EXPERT, doc="motor offset")
 
-    AccelerationTime = float_rw_mem_attr(unit="s", doc="motor acceleration time")
+    AccelerationTime = float_rw_mem_attr(unit="s", display_level=DispLevel.EXPERT,
+                                         doc="motor acceleration time")
 
-    Backlash = float_rw_mem_attr(doc="motor backlash")
+    Backlash = float_rw_mem_attr(display_level=DispLevel.EXPERT,
+                                 doc="motor backlash")
 
     #TODO: steps_per_unit,
 
     StepSize = float_rw_mem_attr(hw_memorized=True,
-                                 doc="motor step size (used by StepDown and StepUp")
+                                 doc="motor step size (used by StepDown and StepUp)")
+
+    Limit_Switches = attribute(dtype=(bool,), access=AttrWriteType.READ,
+                               max_dim_x=3, display_level=DispLevel.EXPERT,
+                               doc="limit switches (home, upper, lower)")
 
     @property
     def spec_motor(self):
@@ -81,13 +81,11 @@ class TangoSpecMotor(Device):
     @DebugIt()
     def init_device(self):
         Device.init_device(self)
-
         self.set_change_event("State", True, True)
         self.set_change_event("Status", True, False)
         self.set_change_event("Position", True, False)
 
-        self.set_state(DevState.INIT)
-        self.set_status("Pending connection to " + self.SpecMotor)
+        switch_state(self, DevState.INIT, "Pending connection to " + self.SpecMotor)
         
         self.__spec_motor = None
         self.__spec_motor_name = None
@@ -103,16 +101,12 @@ class TangoSpecMotor(Device):
             if not tango_specs:
                 status = "Wrong SpecMotor property: Not inside a TangoSpec. " \
                          "Need the full SpecMotor"
-                self.set_state(DevState.FAULT)
-                self.set_status(status)
-                self.error_stream(status)
+                switch_state(self, DevState.FAULT, status)
                 return
             elif len(tango_specs) > 1:
                 status = "Wrong SpecMotor property: More than one TangoSpec " \
                          "in tango server. Need the full SpecMotor"
-                self.set_state(DevState.FAULT)
-                self.set_status(status)
-                self.error_stream(status)
+                switch_state(self, DevState.FAULT, status)
                 return
             else:
                 spec_version = tango_specs[0].Spec
@@ -132,33 +126,23 @@ class TangoSpecMotor(Device):
                                                    callbacks=cb)
         except SpecClientError as spec_error:
             status = "Error connecting to Spec motor: %s" % str(spec_error)
-            self.set_state(DevState.FAULT)
-            self.set_status(status)
-            self.error_stream(status)
+            switch_state(self, DevState.FAULT, status)
 
     def always_executed_hook(self):
         pass
 
     def __motorConnected(self):
-        msg = "Connected to motor " + self.SpecMotor
-        self.info_stream(msg)
-        self.set_state(DevState.ON)
-        self.set_status(msg)
+        switch_state(self, DevState.ON, "Connected to motor " + self.SpecMotor)
 
     def __motorDisconnected(self):
-        self.info_stream("motor disconnected")
+        switch_state(self, DevState.OFF, "motor disconnected")
 
     def __motorPositionChanged(self, position):
-        self.debug_stream("motor position changed %s", position)        
-        self.push_change_event("Position", position)
+        execute(self.push_change_event, "Position", position)
 
     def __motorStateChanged(self, spec_state):
-        state = _SS_2_TS[spec_state]
-        self.info_stream("motor state changed %s", state)
-        self.set_state(state)
-        self.set_status("Motor is now %s" % (str(state,)))
-        # calling this blocks forever :( Don't know why for the moment
-        #self.push_change_event("State", state)
+        state = SpecState_2_TangoState[spec_state]
+        switch_state(self, state, "Motor is now %s" % (str(state),))
 
     @DebugIt()
     def __updateLimits(self):
@@ -213,7 +197,11 @@ class TangoSpecMotor(Device):
     @DebugIt()
     def write_StepSize(self, step_size):
         self.__step_size = step_size
-                
+
+    def read_Limit_Switches(self):
+        m = self.__spec_motor
+        return False, m.getParameter('high_lim_hit'), m.getParameter('low_lim_hit')
+        
     @command
     def Stop(self):
         self.__spec_motor.stop()

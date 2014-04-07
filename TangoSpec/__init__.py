@@ -8,6 +8,8 @@
 # See LICENSE.txt for more info.
 #------------------------------------------------------------------------------
 
+"""A TANGO_ device server which provides a TANGO interface to SPEC."""
+
 import datetime
 __this_year = datetime.date.today().year
 del datetime
@@ -18,4 +20,10 @@ __version__ = "{0[0]}.{0[1]}.{0[2]}".format(__version_info__)
 __authors__ = ['Andy Gotz', 'Tiago Coutinho', 'Matias Guijarro']
 __author__ = __authors__[0]
 __copyright__ = '{0}, European Synchrotron Radiation Facility'.format(__this_year)
-__description__ = "A TANGO_ device server which provides a TANGO interface to SPEC."
+__description__ = __doc__
+
+
+
+from .TangoSpec import TangoSpec, run
+from .TangoSpecMotor import TangoSpecMotor
+from .TangoSpecCounter import TangoSpecCounter
