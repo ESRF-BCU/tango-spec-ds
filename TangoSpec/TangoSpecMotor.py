@@ -149,12 +149,11 @@ class TangoSpecMotor(Device):
         if not self.__spec_motor:
             return
         limits = self.__spec_motor.getLimits()
-        pos_attr = self.get_device_attr().get_attr_by_name("Position")
         multi_prop = MultiAttrProp()
-        multi_prop = pos_attr.get_properties(multi_prop)
+        multi_prop = self.Position.get_properties(multi_prop)
         multi_prop.min_value = str(limits[0])
         multi_prop.max_value = str(limits[1])
-        pos_attr.set_properties(multi_prop)
+        self.Position.set_properties(multi_prop)
         
     def read_Position(self):
         return self.__spec_motor.getPosition()
