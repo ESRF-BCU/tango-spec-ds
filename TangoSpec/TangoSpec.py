@@ -9,7 +9,7 @@
 # See LICENSE.txt for more info.
 #------------------------------------------------------------------------------
 
-"""A TANGO device server for SPEC based on SpecClient."""
+"""A TANGO_ device server for SPEC_ based on SpecClient."""
 
 import json
 import numbers
@@ -39,7 +39,7 @@ str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
 # 2 - read list of available counters from spec (SpecCounterList attribute)
 
 class TangoSpec(Device):
-    """A TANGO device server for SPEC based on SpecClient."""
+    """A TANGO_ device server for SPEC_ based on SpecClient."""
     __metaclass__ = DeviceMeta
 
     Spec = device_property(dtype=str, default_value="localhost:spec",
@@ -54,14 +54,19 @@ class TangoSpec(Device):
     Variables = device_property(dtype=[str], default_value=[],
                                 doc="List registered SPEC variables to create e.g. myvar, mayarr, A")
 
+    ## Attribute containning the list of all SPEC_ motors
     SpecMotorList = str_1D_attr(doc="List of all SPEC motors")
 
+    ## Attribute containning the list of SPEC_ motors exported to TANGO_
     MotorList = str_1D_attr(doc="List of tango motors from SPEC")
-    
+
+    ## Attribute containning the list of all SPEC_ counters    
     SpecCounterList = str_1D_attr(doc="List of all SPEC counters")
 
+    ## Attribute containning the list of SPEC_ counters exported to TANGO_
     CounterList = str_1D_attr(doc="List of tango counters from SPEC")
 
+    ## Attribute containning the list of SPEC_ variables exported to TANGO_    
     VariableList = str_1D_attr(doc="List of SPEC variables")
     
     Output = attribute(dtype=str, access=AttrWriteType.READ)
@@ -198,14 +203,42 @@ class TangoSpec(Device):
         
     @command(dtype_in=str, dtype_out=str)
     def ExecuteCmd(self, command):
+        """
+        Execute a SPEC_ command synchronously.
+        Use :meth:`~TangoSpec.ExecuteCmdA` instead if you intend to run
+        commands that take some time.
+
+        :param command:
+            the command to be executed (ex: ``"wa"`` )
+        :type command: str
+        """
         return self._execute_cmd(command)
 
     @command(dtype_in=str, dtype_out=int)
     def ExecuteCmdA(self, command):
+        """
+        Execute a SPEC_ command asynchronously.
+
+        :param command:
+            the command to be executed (ex: ``"ascan energy 0.1 10 20 0.1"`` )
+        :type command: str
+        :return: an identifier for the command.
+        :rtype: int
+        """
         return self._execute_cmd(command, wait=False)    
 
     @command(dtype_in=int, dtype_out=str)
     def GetReply(self, cmd_id):
+        """
+        Returns the reply of the SPEC_ command given by the cmd_id, previously
+        requested through :meth:`~TangoSpec.ExecuteCmdA`.
+        It waits if the command is not finished
+
+        :param cmd_id: command identifier
+        :type cmd_id: int
+        :return: the reply for the requested command
+        :rtype: str
+        """
         spec_cmd = self.__executing_commands[cmd_id]
         del self.__executing_commands[cmd_id]
         reply = spec_cmd.waitReply()
@@ -216,21 +249,40 @@ class TangoSpec(Device):
 
     @command(dtype_in=int, dtype_out=bool)
     def IsReplyArrived(self, cmd_id):
+        """
+        Determines if a command executed previously with the given cmd_id is
+        finished.
+
+        :param cmd_id: command identifier
+        :type cmd_id: int
+        :return: True if the command response as arrived or False otherwise
+        :rtype: bool
+        """
         if not cmd_id in self.__executing_commands:
             return True
         spec_cmd = self.__executing_commands[cmd_id]
         return spec_cmd.isReplyArrived()
 
     @command(dtype_in=str, doc_in="spec variable name")
-    def AddVariable(self, variable):
-        if variable in self.__variables:
+    def AddVariable(self, variable_name):
+        """
+        Export a SPEC_ variable to Tango by adding a new attribute to this
+        device with the same name as the variable.
+
+        :param variable_name:
+            SPEC_ variable name to be exported as a TANGO_ attribute
+        :type variable_name: str
+        :throws PyTango.DevFailed:
+            If the variable is already exposed in this TANGO_ DS.
+        """
+        if variable_name in self.__variables:
             raise Exception("Variable '%s' is already defined as an attribute!" %
-                            (variable,))
+                            (variable_name,))
 
         try:
-            self.__addVariable(variable)
+            self.__addVariable(variable_name)
         except SpecClientError as error:
-            status = "Error adding variable '%s': %s" % (variable, str(error))
+            status = "Error adding variable '%s': %s" % (variable_name, str(error))
             switch_state(self, DevState.FAULT, status)
             raise
             
@@ -242,12 +294,20 @@ class TangoSpec(Device):
         execute(self.push_change_event, "VariableList", variables)
 
     @command(dtype_in=str, doc_in="spec variable name")
-    def RemoveVariable(self, variable):
-        if variable not in self.__variables:
-            raise Exception("Variable '%s' is not defined as an attribute!" %
-                            (variable,))
+    def RemoveVariable(self, variable_name):
+        """
+        Unexposes the given variable from this TANGO_ DS.
 
-        self.__removeVariable(variable)
+        :param variable_name: the name of the SPEC_ variable to be removed
+        :type variable_name: str
+        :throws PyTango.DevFailed:
+            If the variable is not exposed in this TANGO_ DS
+        """
+        if variable_name not in self.__variables:
+            raise Exception("Variable '%s' is not defined as an attribute!" %
+                            (variable_name,))
+
+        self.__removeVariable(variable_name)
 
         # update property in the database
         db = Util.instance().get_database()
@@ -257,8 +317,33 @@ class TangoSpec(Device):
         execute(self.push_change_event, "VariableList", variables)
         
     @command(dtype_in=[str],
-             doc_in="spec motor name [, tango motor device name [, tango alias name]]")
+             doc_in="spec motor name [, tango device name [, tango alias name]]")
     def AddMotor(self, motor_info):
+        """
+        Adds a new TangoSpecMotor to this DS.
+
+        *motor_info* must be a sequence of strings with the following options::
+
+            spec_motor_name [, tango_device_name [, tango_alias_name]]
+
+        Examples::
+
+            spec = PyTango.DeviceProxy("ID00/spec/fourc")
+            spec.AddMotor(("th",))            
+            spec.AddMotor(("tth", "ID00/fourc/tth", "theta2"))
+
+        :param spec_motor_name:
+            name of the spec motor to export to TANGO_
+        :param tango_device_name:
+            optional tango name to give to the new TANGO_ motor device
+            [default: <tangospec_domain>/<tangospec_family>/<spec_motor_name>]
+        :param tango_alias_name:
+            optional alias to give to the new tango motor device
+            [default: <spec_motor_name>]. Note: if the alias
+            exists it will **not** be overwritten.
+        :throws PyTango.DevFailed:
+            If SPEC_ motor does not exist or if motor is already exported
+        """
         util = Util.instance()
         
         motor_name = motor_info[0]
@@ -290,6 +375,17 @@ class TangoSpec(Device):
 
     @command(dtype_in=str, doc_in="spec motor name")
     def RemoveMotor(self, motor_name):
+        """
+        Removes the given TangoSpecMotor from this DS.
+
+        :param motor_name: SPEC_ motor name to be removed
+        :type motor_name: str
+
+        Examples::
+
+            spec = PyTango.DeviceProxy("ID00/spec/fourc")
+            spec.RemoveMotor("th")    
+        """
         util = Util.instance()
         tango_spec_motors = util.get_device_list_by_class("TangoSpecMotor")
         for tango_spec_motor in tango_spec_motors:

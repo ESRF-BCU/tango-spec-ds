@@ -8,7 +8,7 @@
 # See LICENSE.txt for more info.
 #------------------------------------------------------------------------------
 
-"""A TANGO_ device server which provides a TANGO interface to SPEC."""
+"""A TANGO_ device server which provides a TANGO_ interface to SPEC_."""
 
 import datetime
 __this_year = datetime.date.today().year

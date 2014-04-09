@@ -13,9 +13,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   TangoSpec
-   
-
+   Getting started <getting_started>
+   API <api>
 
 
 Indices and tables

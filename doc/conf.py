@@ -249,9 +249,17 @@ texinfo_documents = [
 # How to display URL addresses: 'footnote', 'no', or 'inline'.
 #texinfo_show_urls = 'footnote'
 
+# autodoc options
+
+autodoc_member_order = 'bysource'
+autodoc_default_flags = ['members', 'show-inheritance']
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
+
+# -- Options for todo ----------------------------------------------------------
+
+todo_include_todos = True
 
 # -- Options for RST -----------------------------------------------------------
 
