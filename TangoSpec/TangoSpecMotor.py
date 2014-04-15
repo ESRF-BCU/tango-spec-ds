@@ -11,10 +11,12 @@
 
 """A TANGO motor device for SPEC based on SpecClient."""
 
+import time
 from functools import partial
 
-from PyTango import Util, DevState, DispLevel, AttrWriteType, DebugIt
+from PyTango import Util, DevState, DispLevel, AttrWriteType, AttrQuality
 from PyTango import MultiAttrProp
+from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
 
@@ -138,11 +140,25 @@ class TangoSpecMotor(Device):
         switch_state(self, DevState.OFF, "motor disconnected")
 
     def __motorPositionChanged(self, position):
-        execute(self.push_change_event, "Position", position)
+        state = self.get_state()
+        if state == DevState.MOVING:
+            execute(self.push_change_event, "Position", position, time.time(),
+                    AttrQuality.ATTR_CHANGING)
+        else:
+            execute(self.push_change_event, "Position", position)
 
     def __motorStateChanged(self, spec_state):
+        old_state = self.get_state()
         state = SpecState_2_TangoState[spec_state]
+
+        # Fire a position event with VALID quality
+        if old_state == DevState.MOVING and state != DevState.MOVING:
+            position = self.__spec_motor.getPosition()
+            execute(self.push_change_event, "Position", position)
+
+        # switch tango state and status attributes and send events
         switch_state(self, state, "Motor is now %s" % (str(state),))
+
 
     @DebugIt()
     def __updateLimits(self):
@@ -156,8 +172,12 @@ class TangoSpecMotor(Device):
         self.Position.set_properties(multi_prop)
         
     def read_Position(self):
-        return self.__spec_motor.getPosition()
-
+        position = self.__spec_motor.getPosition()
+        state = self.get_state()
+        if state == DevState.MOVING:
+            return position, time.time(), AttrQuality.ATTR_CHANGING
+        return position
+    
     def write_Position(self, position):
         self.__spec_motor.move(position)
 
