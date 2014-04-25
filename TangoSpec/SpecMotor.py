@@ -20,24 +20,24 @@ from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
 
-from SpecClient_gevent import SpecMotor
+from SpecClient_gevent.SpecMotor import SpecMotorA
 from SpecClient_gevent.SpecClientError import SpecClientError
 
 from . import TgGevent
-from .TangoSpecCommon import SpecState_2_TangoState, execute, switch_state
+from .SpecCommon import SpecState_2_TangoState, execute, switch_state
 
 #: read-write scalar float attribute helper
 float_rw_mem_attr = partial(attribute, dtype=float, memorized=True,
                             access=AttrWriteType.READ_WRITE)
 
                             
-class TangoSpecMotor(Device):
+class SpecMotor(Device):
     """A TANGO SPEC motor device based on SpecClient."""
     __metaclass__ = DeviceMeta
 
     SpecMotor = device_property(dtype=str, default_value="",
                                 doc="Name of spec session and motor e.g. host:spec:m0. "
-                                    "(if running along with a TangoSpec it can be just the motor name")
+                                    "(if running along with a Spec it can be just the motor name")
 
     Position = float_rw_mem_attr(doc="motor position")
 
@@ -99,14 +99,14 @@ class TangoSpecMotor(Device):
             spec_version = "%s:%s" % (host, session)
         except ValueError:
             util = Util.instance()
-            tango_specs = util.get_device_list_by_class("TangoSpec")
+            tango_specs = util.get_device_list_by_class("Spec")
             if not tango_specs:
-                status = "Wrong SpecMotor property: Not inside a TangoSpec. " \
+                status = "Wrong SpecMotor property: Not inside a Spec. " \
                          "Need the full SpecMotor"
                 switch_state(self, DevState.FAULT, status)
                 return
             elif len(tango_specs) > 1:
-                status = "Wrong SpecMotor property: More than one TangoSpec " \
+                status = "Wrong SpecMotor property: More than one Spec " \
                          "in tango server. Need the full SpecMotor"
                 switch_state(self, DevState.FAULT, status)
                 return
@@ -123,9 +123,8 @@ class TangoSpecMotor(Device):
                     motorPositionChanged=self.__motorPositionChanged,
                     motorStateChanged=self.__motorStateChanged,
                     motorLimitsChanged=self.__updateLimits)
-            self.__spec_motor = TgGevent.get_proxy(SpecMotor.SpecMotorA,
-                                                   motor, spec_version,
-                                                   callbacks=cb)
+            self.__spec_motor = TgGevent.get_proxy(SpecMotorA, motor,
+                                                   spec_version, callbacks=cb)
         except SpecClientError as spec_error:
             status = "Error connecting to Spec motor: %s" % str(spec_error)
             switch_state(self, DevState.FAULT, status)
@@ -247,7 +246,7 @@ class TangoSpecMotor(Device):
 
 
 def main():
-    server_run((TangoSpecMotor,), verbose=True)
+    server_run((SpecMotor,), verbose=True)
 
 if __name__ == '__main__':
     main()

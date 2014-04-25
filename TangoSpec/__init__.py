@@ -22,8 +22,6 @@ __author__ = __authors__[0]
 __copyright__ = '{0}, European Synchrotron Radiation Facility'.format(__this_year)
 __description__ = __doc__
 
-
-
-from .TangoSpec import TangoSpec, run
-from .TangoSpecMotor import TangoSpecMotor
-from .TangoSpecCounter import TangoSpecCounter
+from .Spec import Spec, run
+from .SpecMotor import SpecMotor
+from .SpecCounter import SpecCounter

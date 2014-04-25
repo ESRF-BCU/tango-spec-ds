@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #------------------------------------------------------------------------------
 # This file is part of the Tango SPEC device server
@@ -20,14 +20,14 @@ from PyTango import DevState, CmdArgType, AttrWriteType, DispLevel, DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
 
-from SpecClient_gevent import Spec
+from SpecClient_gevent import Spec as _Spec
 from SpecClient_gevent import SpecCommand
 from SpecClient_gevent import SpecVariable
 from SpecClient_gevent import SpecEventsDispatcher
 from SpecClient_gevent.SpecClientError import SpecClientError
 
 from . import TgGevent
-from .TangoSpecCommon import execute, switch_state
+from .SpecCommon import execute, switch_state
 
 #: read-only spectrum string attribute helper
 str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
@@ -38,7 +38,7 @@ str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
 # 1 - tests!
 # 2 - read list of available counters from spec (SpecCounterList attribute)
 
-class TangoSpec(Device):
+class Spec(Device):
     """A TANGO_ device server for SPEC_ based on SpecClient."""
     __metaclass__ = DeviceMeta
 
@@ -113,7 +113,7 @@ class TangoSpec(Device):
 
         # Create asynchronous spec access to get the data
         try:
-            self.__spec = TgGevent.get_proxy(Spec.Spec,
+            self.__spec = TgGevent.get_proxy(_Spec.Spec,
                                              spec_name,
                                              timeout=1000)
             self.__spec_tty = TgGevent.get_proxy(SpecVariable.SpecVariableA,
@@ -205,7 +205,7 @@ class TangoSpec(Device):
     def ExecuteCmd(self, command):
         """
         Execute a SPEC_ command synchronously.
-        Use :meth:`~TangoSpec.ExecuteCmdA` instead if you intend to run
+        Use :meth:`~Spec.ExecuteCmdA` instead if you intend to run
         commands that take some time.
 
         :param command:
@@ -231,7 +231,7 @@ class TangoSpec(Device):
     def GetReply(self, cmd_id):
         """
         Returns the reply of the SPEC_ command given by the cmd_id, previously
-        requested through :meth:`~TangoSpec.ExecuteCmdA`.
+        requested through :meth:`~Spec.ExecuteCmdA`.
         It waits if the command is not finished
 
         :param cmd_id: command identifier
@@ -320,7 +320,7 @@ class TangoSpec(Device):
              doc_in="spec motor name [, tango device name [, tango alias name]]")
     def AddMotor(self, motor_info):
         """
-        Adds a new TangoSpecMotor to this DS.
+        Adds a new SpecMotor to this DS.
 
         *motor_info* must be a sequence of strings with the following options::
 
@@ -351,7 +351,7 @@ class TangoSpec(Device):
         if not motor_name in self.__spec.getMotorsMne():
             Except.throw_exception("Spec_UnknownMotor",
                                    "Unknown motor '%s'" % motor_name,
-                                   "TangoSpec::AddMotor")
+                                   "Spec::AddMotor")
         
         dev_name = self.get_name().rsplit("/", 1)[0] + "/" + motor_name
         if len(motor_info) > 1:
@@ -369,14 +369,14 @@ class TangoSpec(Device):
             except DevFailed:
                 db.put_device_alias(dev_name, motor_alias)
             
-        util.create_device("TangoSpecMotor", dev_name, cb=cb)
+        util.create_device("SpecMotor", dev_name, cb=cb)
 
         execute(self.push_change_event, "MotorList", self.__get_MotorList())
 
     @command(dtype_in=str, doc_in="spec motor name")
     def RemoveMotor(self, motor_name):
         """
-        Removes the given TangoSpecMotor from this DS.
+        Removes the given SpecMotor from this DS.
 
         :param motor_name: SPEC_ motor name to be removed
         :type motor_name: str
@@ -387,11 +387,11 @@ class TangoSpec(Device):
             spec.RemoveMotor("th")    
         """
         util = Util.instance()
-        tango_spec_motors = util.get_device_list_by_class("TangoSpecMotor")
+        tango_spec_motors = util.get_device_list_by_class("SpecMotor")
         for tango_spec_motor in tango_spec_motors:
             if tango_spec_motor.get_spec_motor_name() == motor_name:
                 tango_spec_motor_name = tango_spec_motor.get_name()
-                util.delete_device("TangoSpecMotor", tango_spec_motor_name)
+                util.delete_device("SpecMotor", tango_spec_motor_name)
                 break
         else:
             raise KeyError("No motor with name '%s'" % motor_name)
@@ -412,18 +412,18 @@ class TangoSpec(Device):
             db = util.get_database()
             db.put_device_property(dev_name, dict(SpecCounter=counter_name))
             
-        util.create_device("TangoSpecCounter", dev_name, cb=cb)
+        util.create_device("SpecCounter", dev_name, cb=cb)
 
         execute(self.push_change_event, "CounterList", self.__get_CounterList())
 
     @command(dtype_in=str, doc_in="spec counter name")
     def RemoveCounter(self, counter_name):
         util = Util.instance()
-        tango_spec_counters = util.get_device_list_by_class("TangoSpecCounter")
+        tango_spec_counters = util.get_device_list_by_class("SpecCounter")
         for tango_spec_counter in tango_spec_counters:
             if tango_spec_counter.get_spec_counter_name() == counter_name:
                 tango_spec_counter_name = tango_spec_counter.get_name()
-                util.delete_device("TangoSpecCounter", tango_spec_counter_name)
+                util.delete_device("SpecCounter", tango_spec_counter_name)
                 break
         else:
             raise KeyError("No counter with name '%s'" % counter_name)
@@ -439,12 +439,12 @@ class TangoSpec(Device):
     
     def __get_MotorList(self):
         util = Util.instance()
-        motors = util.get_device_list_by_class("TangoSpecMotor")
+        motors = util.get_device_list_by_class("SpecMotor")
         return ["{0} ({1})".format(m.get_spec_motor_name(), m.get_name()) for m in motors]
 
     def __get_CounterList(self):
         util = Util.instance()
-        counters = util.get_device_list_by_class("TangoSpecCounter")
+        counters = util.get_device_list_by_class("SpecCounter")
         return ["{0} ({1})".format(c.get_spec_counter_name(), c.get_name()) for c in counters]
 
     def __get_VariableList(self):
@@ -472,10 +472,10 @@ class TangoSpec(Device):
 
         
 def run(**kwargs):
-    """Runs the TangoSpec device server"""
-    from .TangoSpecMotor import TangoSpecMotor
-    from .TangoSpecCounter import TangoSpecCounter
-    classes = TangoSpec, TangoSpecCounter, TangoSpecMotor
+    """Runs the Spec device server"""
+    from .SpecMotor import SpecMotor
+    from .SpecCounter import SpecCounter
+    classes = Spec, SpecCounter, SpecMotor
     server_run(classes, **kwargs)
 
 
