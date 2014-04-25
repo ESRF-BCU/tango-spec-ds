@@ -8,7 +8,7 @@ TangoSpec API
 
 .. autofunction:: TangoSpec.run
 
-.. autoclass:: TangoSpec.TangoSpec
+.. autoclass:: TangoSpec.Spec
 
    .. attribute:: SpecMotorList
 
@@ -35,6 +35,6 @@ TangoSpec API
       Attribute which reports SPEC_ console output (output/tty variable)
 
 
-.. autoclass:: TangoSpec.TangoSpecMotor
+.. autoclass:: TangoSpec.SpecMotor
 
-.. autoclass:: TangoSpec.TangoSpecCounter
+.. autoclass:: TangoSpec.SpecCounter

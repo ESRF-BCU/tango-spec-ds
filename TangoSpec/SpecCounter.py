@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 #------------------------------------------------------------------------------
 # This file is part of the Tango SPEC device server
@@ -16,16 +16,16 @@ from PyTango.server import Device, DeviceMeta, attribute, command, server_run
 from PyTango.server import device_property
 import TgGevent
 
-from SpecClient_gevent.SpecCounter import SpecCounter
+from SpecClient_gevent.SpecCounter import SpecCounter as _SpecCounter
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-class TangoSpecCounter(Device):
+class SpecCounter(Device):
     """A TANGO SPEC counter device based on SpecClient."""
     __metaclass__ = DeviceMeta
 
     SpecCounter = device_property(dtype=str, default_value="",
                                   doc="Name of spec session and counter e.g. host:spec:mon. "
-                                      "(if running along with a TangoSpec it can be just the counter name")
+                                      "(if running along with a Spec it can be just the counter name")
 
     Value = attribute(dtype=float, access=AttrWriteType.READ)
 
@@ -64,16 +64,16 @@ class TangoSpecCounter(Device):
             spec_version = "%s:%s" % (host, session)
         except ValueError:
             util = Util.instance()
-            tango_specs = util.get_device_list_by_class("TangoSpec")
+            tango_specs = util.get_device_list_by_class("Spec")
             if not tango_specs:
-                status = "Wrong SpecCounter property: Not inside a TangoSpec. " \
+                status = "Wrong SpecCounter property: Not inside a Spec. " \
                          "Need the full SpecCounter"
                 self.set_state(DevState.FAULT)
                 self.set_status(status)
                 self.error_stream(status)
                 return
             elif len(tango_specs) > 1:
-                status = "Wrong SpecCounter property: More than one TangoSpec " \
+                status = "Wrong SpecCounter property: More than one Spec " \
                          "in tango server. Need the full SpecCounter"                
                 self.set_state(DevState.FAULT)
                 self.set_status(status)
@@ -87,7 +87,7 @@ class TangoSpecCounter(Device):
         self.__spec_counter_name = counter
         
         try:
-            self.__spec_counter = TgGevent.get_proxy(SpecCounter,
+            self.__spec_counter = TgGevent.get_proxy(_SpecCounter,
                                                      counter,
                                                      spec_version)
             msg = "Connected to counter " + self.SpecCounter
@@ -109,7 +109,7 @@ class TangoSpecCounter(Device):
 
         
 def main():
-    server_run((TangoSpecCounter,), verbose=True)
+    server_run((SpecCounter,), verbose=True)
 
 if __name__ == '__main__':
     main()
