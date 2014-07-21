@@ -32,6 +32,7 @@ def main():
           packages=['TangoSpec'],
           url="http://www.tango-controls.org",
           cmdclass=cmdclass,
+          scripts=['scripts/TangoSpec'],
         )
 
 
