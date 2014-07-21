@@ -86,6 +86,7 @@ class SpecMotor(Device):
         self.set_change_event("State", True, True)
         self.set_change_event("Status", True, False)
         self.set_change_event("Position", True, False)
+        self.set_change_event("StepSize", True, False)
 
         switch_state(self, DevState.INIT, "Pending connection to " + self.SpecMotor)
         
@@ -165,10 +166,11 @@ class SpecMotor(Device):
             return
         limits = self.__spec_motor.getLimits()
         multi_prop = MultiAttrProp()
-        multi_prop = self.Position.get_properties(multi_prop)
+        position_attr = self.get_device_attr().get_attr_by_name("position")
+        multi_prop = position_attr.get_properties(multi_prop)
         multi_prop.min_value = str(limits[0])
         multi_prop.max_value = str(limits[1])
-        self.Position.set_properties(multi_prop)
+        position_attr.set_properties(multi_prop)
         
     def read_Position(self):
         position = self.__spec_motor.getPosition()
@@ -215,6 +217,7 @@ class SpecMotor(Device):
     @DebugIt()
     def write_StepSize(self, step_size):
         self.__step_size = step_size
+        self.push_change_event("StepSize", step_size)
 
     def read_Limit_Switches(self):
         m = self.__spec_motor

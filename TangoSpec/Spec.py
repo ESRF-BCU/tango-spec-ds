@@ -197,8 +197,8 @@ class Spec(Device):
         if wait:
             return str(spec_cmd.executeCommand(cmd))
         else:
-            spec_cmd.executeCommand(cmd, wait=False)
-            self.__executing_commands[id(spec_cmd)]=spec_cmd
+            task = spec_cmd.executeCommand(cmd, wait=False)
+            self.__executing_commands[id(spec_cmd)]=task
             return id(spec_cmd)
         
     @command(dtype_in=str, dtype_out=str)
@@ -239,13 +239,12 @@ class Spec(Device):
         :return: the reply for the requested command
         :rtype: str
         """
-        spec_cmd = self.__executing_commands[cmd_id]
-        del self.__executing_commands[cmd_id]
-        reply = spec_cmd.waitReply()
-        if reply.error:
-            raise RuntimeError(reply.error)
+        task = self.__executing_commands.pop(cmd_id)
+        task.join()
+        if task.successful():
+            return str(task.value)
         else:
-            return str(reply.data)
+            raise task.exception
 
     @command(dtype_in=int, dtype_out=bool)
     def IsReplyArrived(self, cmd_id):
@@ -260,8 +259,8 @@ class Spec(Device):
         """
         if not cmd_id in self.__executing_commands:
             return True
-        spec_cmd = self.__executing_commands[cmd_id]
-        return spec_cmd.isReplyArrived()
+        task = self.__executing_commands[cmd_id]
+        return task.ready()
 
     @command(dtype_in=str, doc_in="spec variable name")
     def AddVariable(self, variable_name):
@@ -440,12 +439,12 @@ class Spec(Device):
     def __get_MotorList(self):
         util = Util.instance()
         motors = util.get_device_list_by_class("SpecMotor")
-        return ["{0} ({1})".format(m.get_spec_motor_name(), m.get_name()) for m in motors]
+        return ["{0} {1}".format(m.get_spec_motor_name(), m.get_name()) for m in motors]
 
     def __get_CounterList(self):
         util = Util.instance()
         counters = util.get_device_list_by_class("SpecCounter")
-        return ["{0} ({1})".format(c.get_spec_counter_name(), c.get_name()) for c in counters]
+        return ["{0} {1}".format(c.get_spec_counter_name(), c.get_name()) for c in counters]
 
     def __get_VariableList(self):
         return sorted(self.__variables)
