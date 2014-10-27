@@ -12,6 +12,7 @@
 """A TANGO motor device for SPEC based on SpecClient."""
 
 import time
+import logging
 from functools import partial
 
 from PyTango import Util, DevState, DispLevel, AttrWriteType, AttrQuality
@@ -30,7 +31,7 @@ from .SpecCommon import SpecState_2_TangoState, execute, switch_state
 float_rw_mem_attr = partial(attribute, dtype=float, memorized=True,
                             access=AttrWriteType.READ_WRITE)
 
-                            
+
 class SpecMotor(Device):
     """A TANGO SPEC motor device based on SpecClient."""
     __metaclass__ = DeviceMeta
@@ -74,14 +75,13 @@ class SpecMotor(Device):
 
     def get_spec_motor_name(self):
         return self.__spec_motor_name
-    
-    @DebugIt()
+
     def delete_device(self):
         Device.delete_device(self)
-        self.__spec_motor = None        
-        
-    @DebugIt()
+        self.__spec_motor = None
+
     def init_device(self):
+        self.__log = logging.getLogger(self.get_name())
         Device.init_device(self)
         self.set_change_event("State", True, True)
         self.set_change_event("Status", True, False)
@@ -89,12 +89,12 @@ class SpecMotor(Device):
         self.set_change_event("StepSize", True, False)
 
         switch_state(self, DevState.INIT, "Pending connection to " + self.SpecMotor)
-        
+
         self.__spec_motor = None
         self.__spec_motor_name = None
         self.__spec_version_name = None
         self.__step_size = 1
-        
+
         try:
             host, session, motor = self.SpecMotor.split(":")
             spec_version = "%s:%s" % (host, session)
@@ -124,11 +124,16 @@ class SpecMotor(Device):
                     motorPositionChanged=self.__motorPositionChanged,
                     motorStateChanged=self.__motorStateChanged,
                     motorLimitsChanged=self.__updateLimits)
+            self.__log.debug("Start creating Spec motor %s", motor)
             self.__spec_motor = TgGevent.get_proxy(SpecMotorA, motor,
                                                    spec_version, callbacks=cb)
+            self.__log.debug("End creating Spec motor %s", motor)
         except SpecClientError as spec_error:
             status = "Error connecting to Spec motor: %s" % str(spec_error)
             switch_state(self, DevState.FAULT, status)
+        import gevent
+        gevent.wait(timeout=0.1)
+        self.__log.debug("Finished init_device")
 
     def always_executed_hook(self):
         pass
@@ -159,26 +164,30 @@ class SpecMotor(Device):
         # switch tango state and status attributes and send events
         switch_state(self, state, "Motor is now %s" % (str(state),))
 
-
-    @DebugIt()
     def __updateLimits(self):
+        self.__log.debug("start update limits on %s", self.get_name())
         if not self.__spec_motor:
             return
+        self.__log.debug("update limits 0")
         limits = self.__spec_motor.getLimits()
+        self.__log.debug("update limits 1")
         multi_prop = MultiAttrProp()
         position_attr = self.get_device_attr().get_attr_by_name("position")
         multi_prop = position_attr.get_properties(multi_prop)
+        self.__log.debug("update limits 2")
         multi_prop.min_value = str(limits[0])
         multi_prop.max_value = str(limits[1])
+        self.__log.debug("update limits 3")
         position_attr.set_properties(multi_prop)
-        
+        self.__log.debug("finish update limits on %s", self.get_name())
+
     def read_Position(self):
         position = self.__spec_motor.getPosition()
         state = self.get_state()
         if state == DevState.MOVING:
             return position, time.time(), AttrQuality.ATTR_CHANGING
         return position
-    
+
     def write_Position(self, position):
         self.__spec_motor.move(position)
 
@@ -190,7 +199,7 @@ class SpecMotor(Device):
 
     def write_Sign(self, sign):
         self.__spec_motor.setSign(sign)
-    
+
     def read_Offset(self):
         return self.__spec_motor.getOffset()
 
@@ -210,7 +219,7 @@ class SpecMotor(Device):
     @DebugIt()
     def write_Backlash(self, backlash):
         self.__spec_motor.setParameter("backlash", backlash)
-                
+
     def read_StepSize(self):
         return self.__step_size
 
@@ -222,7 +231,7 @@ class SpecMotor(Device):
     def read_Limit_Switches(self):
         m = self.__spec_motor
         return False, m.getParameter('high_lim_hit'), m.getParameter('low_lim_hit')
-        
+
     @command
     def Stop(self):
         self.__spec_motor.stop()

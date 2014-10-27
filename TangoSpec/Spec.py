@@ -12,12 +12,13 @@
 """A TANGO_ device server for SPEC_ based on SpecClient."""
 
 import json
+import logging
 import numbers
 from functools import partial
 
 from PyTango import Util, Attr, Except, DevFailed
 from PyTango import DevState, CmdArgType, AttrWriteType, DispLevel, DebugIt
-from PyTango.server import Device, DeviceMeta, attribute, command, server_run
+from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
 
 from SpecClient_gevent import Spec as _Spec
@@ -60,20 +61,20 @@ class Spec(Device):
     ## Attribute containning the list of SPEC_ motors exported to TANGO_
     MotorList = str_1D_attr(doc="List of tango motors from SPEC")
 
-    ## Attribute containning the list of all SPEC_ counters    
+    ## Attribute containning the list of all SPEC_ counters
     SpecCounterList = str_1D_attr(doc="List of all SPEC counters")
 
     ## Attribute containning the list of SPEC_ counters exported to TANGO_
     CounterList = str_1D_attr(doc="List of tango counters from SPEC")
 
-    ## Attribute containning the list of SPEC_ variables exported to TANGO_    
+    ## Attribute containning the list of SPEC_ variables exported to TANGO_
     VariableList = str_1D_attr(doc="List of SPEC variables")
-    
+
     Output = attribute(dtype=str, access=AttrWriteType.READ)
 
     def get_spec(self):
         return self.__spec
-        
+
     @DebugIt()
     def delete_device(self):
         Device.delete_device(self)
@@ -84,6 +85,7 @@ class Spec(Device):
 
     @DebugIt()
     def init_device(self):
+        self.__log = logging.getLogger(self.get_name())
         Device.init_device(self)
 
         spec_name = self.Spec
@@ -92,7 +94,7 @@ class Spec(Device):
         self.__spec_tty = None
         self.__variables = dict()
         self.__executing_commands = dict()
-        
+
         self.set_change_event("State", True, True)
         self.set_change_event("Status", True, False)
         self.set_change_event("Output", True, False)
@@ -113,23 +115,27 @@ class Spec(Device):
 
         # Create asynchronous spec access to get the data
         try:
+            self.__log.debug("Start creating SPEC object")
             self.__spec = TgGevent.get_proxy(_Spec.Spec,
                                              spec_name,
                                              timeout=1000)
+            self.__log.debug("Created SPEC object")
             self.__spec_tty = TgGevent.get_proxy(SpecVariable.SpecVariableA,
                                                  "output/tty", spec_name,
                                                  prefix=False,
                                                  dispatchMode=SpecEventsDispatcher.FIREEVENT,
                                                  callbacks={"update" : self.update_output})
+            self.__log.debug("Created SPEC tty channel")
             switch_state(self, DevState.ON, "Connected to spec " + spec_name)
         except SpecClientError as spec_error:
             status = "Error connecting to Spec: %s" % str(spec_error)
-            switch_state(self, DevState.FAULT, status)                
+            switch_state(self, DevState.FAULT, status)
             return
 
         for variable in self.Variables:
             try:
                 self.__addVariable(variable)
+                self.__log.debug("Added variable %s", variable)
             except SpecClientError as spec_error:
                 msg = "Error adding variable '%s': %s" % (variable,
                                                           str(spec_error))
@@ -160,7 +166,7 @@ class Spec(Device):
     @DebugIt()
     def read_CounterList(self):
         return self.__get_CounterList()
-    
+
     @DebugIt()
     def read_VariableList(self):
         return self.__get_VariableList()
@@ -200,7 +206,7 @@ class Spec(Device):
             task = spec_cmd.executeCommand(cmd, wait=False)
             self.__executing_commands[id(spec_cmd)]=task
             return id(spec_cmd)
-        
+
     @command(dtype_in=str, dtype_out=str)
     def ExecuteCmd(self, command):
         """
@@ -225,7 +231,7 @@ class Spec(Device):
         :return: an identifier for the command.
         :rtype: int
         """
-        return self._execute_cmd(command, wait=False)    
+        return self._execute_cmd(command, wait=False)
 
     @command(dtype_in=int, dtype_out=str)
     def GetReply(self, cmd_id):
@@ -284,12 +290,12 @@ class Spec(Device):
             status = "Error adding variable '%s': %s" % (variable_name, str(error))
             switch_state(self, DevState.FAULT, status)
             raise
-            
+
         # update property in the database
         db = Util.instance().get_database()
         variables = self.__get_VariableList()
         db.put_device_property(self.get_name(), {"Variables" : variables})
-        
+
         execute(self.push_change_event, "VariableList", variables)
 
     @command(dtype_in=str, doc_in="spec variable name")
@@ -314,7 +320,7 @@ class Spec(Device):
         db.put_device_property(self.get_name(), {"Variables" : variables})
 
         execute(self.push_change_event, "VariableList", variables)
-        
+
     @command(dtype_in=[str],
              doc_in="spec motor name [, tango device name [, tango alias name]]")
     def AddMotor(self, motor_info):
@@ -328,7 +334,7 @@ class Spec(Device):
         Examples::
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
-            spec.AddMotor(("th",))            
+            spec.AddMotor(("th",))
             spec.AddMotor(("tth", "ID00/fourc/tth", "theta2"))
 
         :param spec_motor_name:
@@ -344,14 +350,14 @@ class Spec(Device):
             If SPEC_ motor does not exist or if motor is already exported
         """
         util = Util.instance()
-        
+
         motor_name = motor_info[0]
 
         if not motor_name in self.__spec.getMotorsMne():
             Except.throw_exception("Spec_UnknownMotor",
                                    "Unknown motor '%s'" % motor_name,
                                    "Spec::AddMotor")
-        
+
         dev_name = self.get_name().rsplit("/", 1)[0] + "/" + motor_name
         if len(motor_info) > 1:
             dev_name = motor_info[1]
@@ -359,7 +365,7 @@ class Spec(Device):
         motor_alias = motor_name
         if len(motor_info) > 2:
             motor_alias = motor_info[2]
-            
+
         def cb(name):
             db = util.get_database()
             db.put_device_property(dev_name, dict(SpecMotor=motor_name))
@@ -367,7 +373,7 @@ class Spec(Device):
                 db.get_device_alias(motor_alias)
             except DevFailed:
                 db.put_device_alias(dev_name, motor_alias)
-            
+
         util.create_device("SpecMotor", dev_name, cb=cb)
 
         execute(self.push_change_event, "MotorList", self.__get_MotorList())
@@ -383,7 +389,7 @@ class Spec(Device):
         Examples::
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
-            spec.RemoveMotor("th")    
+            spec.RemoveMotor("th")
         """
         util = Util.instance()
         tango_spec_motors = util.get_device_list_by_class("SpecMotor")
@@ -394,7 +400,7 @@ class Spec(Device):
                 break
         else:
             raise KeyError("No motor with name '%s'" % motor_name)
-        
+
         execute(self.push_change_event, "MotorList", self.__get_MotorList())
 
     @command(dtype_in=[str], doc_in="spec counter name [, tango counter device name]")
@@ -406,11 +412,11 @@ class Spec(Device):
             dev_name = counter_info[1]
         else:
             dev_name = self.get_name().rsplit("/", 1)[0] + "/" + counter_name
-        
+
         def cb(name):
             db = util.get_database()
             db.put_device_property(dev_name, dict(SpecCounter=counter_name))
-            
+
         util.create_device("SpecCounter", dev_name, cb=cb)
 
         execute(self.push_change_event, "CounterList", self.__get_CounterList())
@@ -428,14 +434,14 @@ class Spec(Device):
             raise KeyError("No counter with name '%s'" % counter_name)
 
         execute(self.push_change_event, "CounterList", self.__get_CounterList())
-                
+
     #
     # Helper methods
     #
 
     def __execute(self, f, *args, **kwargs):
         self.__tango_worker.execute(f, *args, **kwargs)
-    
+
     def __get_MotorList(self):
         util = Util.instance()
         motors = util.get_device_list_by_class("SpecMotor")
@@ -448,12 +454,12 @@ class Spec(Device):
 
     def __get_VariableList(self):
         return sorted(self.__variables)
-    
+
     def __addVariable(self, variable):
         def update(value):
             self.debug_stream("update variable '%s'", variable)
             execute(self.push_change_event, variable, json.dumps(value))
-                
+
         v = TgGevent.get_proxy(SpecVariable.SpecVariableA,
                                variable, self.Spec,
                                dispatchMode=SpecEventsDispatcher.FIREEVENT,
@@ -469,13 +475,18 @@ class Spec(Device):
         del self.__variables[variable]
         self.remove_attribute(variable)
 
-        
+
 def run(**kwargs):
     """Runs the Spec device server"""
+    logging.basicConfig(level=logging.DEBUG,
+                        format="%(threadName)10s %(asctime)s "
+                        "%(levelname)5s %(name)s: %(message)s")
+
+    from PyTango.server import run
     from .SpecMotor import SpecMotor
     from .SpecCounter import SpecCounter
     classes = Spec, SpecCounter, SpecMotor
-    server_run(classes, **kwargs)
+    run(classes, **kwargs)
 
 
 if __name__ == '__main__':
