@@ -18,7 +18,7 @@ from functools import partial
 from PyTango import Util, DevState, DispLevel, AttrWriteType, AttrQuality
 from PyTango import MultiAttrProp
 from PyTango import DebugIt
-from PyTango.server import Device, DeviceMeta, attribute, command, server_run
+from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
 
 from SpecClient_gevent.SpecMotor import SpecMotorA
@@ -26,6 +26,7 @@ from SpecClient_gevent.SpecClientError import SpecClientError
 
 from . import TgGevent
 from .SpecCommon import SpecState_2_TangoState, execute, switch_state
+
 
 #: read-write scalar float attribute helper
 float_rw_mem_attr = partial(attribute, dtype=float, memorized=True,
@@ -258,7 +259,8 @@ class SpecMotor(Device):
 
 
 def main():
-    server_run((SpecMotor,), verbose=True)
+    from PyTango.server import run
+    run((SpecMotor,), verbose=True)
 
 if __name__ == '__main__':
     main()

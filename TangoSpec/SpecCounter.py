@@ -11,13 +11,18 @@
 
 """A TANGO device server for SPEC based on SpecClient."""
 
+import logging
+
 from PyTango import Util, Attr, DevState, CmdArgType, AttrWriteType, DebugIt
-from PyTango.server import Device, DeviceMeta, attribute, command, server_run
+from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
-import TgGevent
 
 from SpecClient_gevent.SpecCounter import SpecCounter as _SpecCounter
 from SpecClient_gevent.SpecClientError import SpecClientError
+
+from . import TgGevent
+from .SpecCommon import SpecState_2_TangoState, execute, switch_state
+
 
 class SpecCounter(Device):
     """A TANGO SPEC counter device based on SpecClient."""
@@ -46,14 +51,14 @@ class SpecCounter(Device):
         
     @DebugIt()
     def init_device(self):
+        self.__log = logging.getLogger(self.get_name())
         Device.init_device(self)
-
         self.set_change_event("State", True, True)
         self.set_change_event("Status", True, False)
         #self.set_change_event("Value", True, False)
 
-        self.set_state(DevState.INIT)
-        self.set_status("Pending connection to " + self.SpecCounter)
+        switch_state(self, DevState.INIT,
+                     "Pending connection to " + self.SpecCounter)
         
         self.__spec_counter = None
         self.__spec_counter_name = None
@@ -68,19 +73,15 @@ class SpecCounter(Device):
             if not tango_specs:
                 status = "Wrong SpecCounter property: Not inside a Spec. " \
                          "Need the full SpecCounter"
-                self.set_state(DevState.FAULT)
-                self.set_status(status)
-                self.error_stream(status)
+                switch_state(self, DevState.FAULT, status)
                 return
             elif len(tango_specs) > 1:
                 status = "Wrong SpecCounter property: More than one Spec " \
                          "in tango server. Need the full SpecCounter"                
-                self.set_state(DevState.FAULT)
-                self.set_status(status)
-                self.error_stream(status)
+                switch_state(self, DevState.FAULT, status)
                 return
             else:
-                spec_version = tango_specs[0].get_spec().specVersion
+                spec_version = tango_specs[0].Spec
                 counter = self.SpecCounter
 
         self.__spec_version_name = spec_version
@@ -91,17 +92,13 @@ class SpecCounter(Device):
                                                      counter,
                                                      spec_version)
             msg = "Connected to counter " + self.SpecCounter
-            self.set_state(DevState.ON)
-            self.set_status(msg)
-            self.info_stream(msg)
+            switch_state(self, DevState.ON, msg)
         except SpecClientError as spec_error:
             status = "Error connecting to Spec counter: %s" % str(spec_error)
-            self.set_state(DevState.FAULT)
-            self.set_status(status)
-            self.error_stream(status)
+            switch_state(self, DevState.FAULT, status)
 
     def read_Value(self):
-        return self.spec_counter.get_value()
+        return self.spec_counter.getValue()
 
     @command(dtype_in=float, doc_in="count time (s)")
     def Count(self, count_time):
@@ -109,7 +106,8 @@ class SpecCounter(Device):
 
         
 def main():
-    server_run((SpecCounter,), verbose=True)
+    from PyTango.server import run
+    run((SpecCounter,), verbose=True)
 
 if __name__ == '__main__':
     main()
