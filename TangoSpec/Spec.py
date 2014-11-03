@@ -27,48 +27,16 @@ from SpecClient_gevent import SpecVariable
 from SpecClient_gevent import SpecEventsDispatcher
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-from . import TgGevent
+from .TgGevent import get_proxy
 from .SpecCommon import execute, switch_state
 
 #: read-only spectrum string attribute helper
 str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
                       max_dim_x=512)
 
-
-# Helper methods for old spec clients:
-
-def getCountersMneNames(spec):
-    """Return counters mnemonics and names list."""
-    if spec.connection is not None and spec.connection.isSpecConnected():
-        get_counter_mnemonics = SpecCommand.SpecCommand('local ca[]; for (i=0; i<COUNTERS; i++) { ca[i][cnt_mne(i)]=cnt_name(i) }; return ca', spec.connection)
-
-        counterMne = get_counter_mnemonics()
-        counterList = [None]*len(counterMne)
-        for counter_index, counter_dict in counterMne.iteritems():
-            mne, name = counter_dict.items()[0]
-            counterList[int(counter_index)]={"mne": mne, "name": name }
-        return counterList
-    else:
-        return []
-
-def getCountersMne(spec):
-   """Return counter mnemonics list."""
-   counterMneList = []
-   for counter_dict in getCountersMneNames(spec):
-       counterMneList.append(counter_dict["mne"])
-   return counterMneList
-
-def getCountersNames(spec):
-   """Return counters names list."""
-   counterNamesList = []
-   for counter_dict in getCountersMneNames(spec):
-       counterNamesList.append(counter_dict["name"])
-       return counterNamesList
-
-
 #TODO:
 # 1 - tests!
-# 2 - read list of available counters from spec (SpecCounterList attribute)
+
 
 class Spec(Device):
     """A TANGO_ device server for SPEC_ based on SpecClient."""
@@ -117,6 +85,8 @@ class Spec(Device):
     @DebugIt()
     def init_device(self):
         self.__log = logging.getLogger(self.get_name())
+        dbg = self.__log.debug
+        exc = self.__log.exception
         Device.init_device(self)
 
         spec_name = self.Spec
@@ -137,8 +107,9 @@ class Spec(Device):
 
         try:
             spec_host, spec_session = spec_name.split(":")
-            self.debug_stream("Using spec '%s'", spec_name)
+            dbg("Using spec %s:%s", spec_host, spec_session)
         except ValueError:
+            exc("Error parsing SPEC name")
             status = "Invalid spec '%s'. Must be in format " \
                      "<host>:<spec session>" % (spec_name,)
             switch_state(self, DevState.FAULT, status)
@@ -146,28 +117,39 @@ class Spec(Device):
 
         # Create asynchronous spec access to get the data
         try:
-            self.__log.debug("Start creating SPEC object")
-            self.__spec = TgGevent.get_proxy(_Spec.Spec,
+            dbg("Creating SPEC object...")
+            self.__spec = get_proxy(_Spec.Spec,
                                              spec_name,
                                              timeout=1000)
-            self.__log.debug("Created SPEC object")
-            self.__spec_tty = TgGevent.get_proxy(SpecVariable.SpecVariableA,
+            dbg("Created SPEC object")
+        except SpecClientError as spec_error:
+            exc("Error creating SPEC object")
+            status = "Error connecting to Spec: %s" % str(spec_error)
+            switch_state(self, DevState.FAULT, status)
+            return
+
+        try:
+            dbg("Creating SPEC tty channel...")
+            self.__spec_tty = get_proxy(SpecVariable.SpecVariableA,
                                                  "output/tty", spec_name,
                                                  prefix=False,
                                                  dispatchMode=SpecEventsDispatcher.FIREEVENT,
                                                  callbacks={"update" : self.update_output})
-            self.__log.debug("Created SPEC tty channel")
+            dbg("Created SPEC tty channel")
             switch_state(self, DevState.ON, "Connected to spec " + spec_name)
         except SpecClientError as spec_error:
+            exc("Error creating SPEC tty channel")
             status = "Error connecting to Spec: %s" % str(spec_error)
             switch_state(self, DevState.FAULT, status)
             return
 
         for variable in self.Variables:
             try:
+                dbg("Creating variable %s...", variable)
                 self.__addVariable(variable)
-                self.__log.debug("Added variable %s", variable)
+                dbg("Created variable %s", variable)
             except SpecClientError as spec_error:
+                exc("Error creating variable %s", variable)
                 msg = "Error adding variable '%s': %s" % (variable,
                                                           str(spec_error))
                 switch_state(self, DevState.FAULT, self.get_status + "\n" + msg)
@@ -191,11 +173,7 @@ class Spec(Device):
 
     @DebugIt()
     def read_SpecCounterList(self):
-        if hasattr(self.__spec, "getCountersMne"):
-            counter_names = self.__spec.getCountersMne()
-        else:
-            counter_names = getCountersMne(self.__spec)
-        return counter_names
+        return self.__spec.getCountersMne()
 
     @DebugIt()
     def read_CounterList(self):
@@ -229,7 +207,7 @@ class Spec(Device):
 
     def _execute_cmd(self, cmd, wait=True):
         try:
-            spec_cmd = TgGevent.get_proxy(SpecCommand.SpecCommand, None, self.Spec)
+            spec_cmd = get_proxy(SpecCommand.SpecCommand, None, self.Spec)
         except SpecClientError as error:
             status = "Spec %s error: %s" % (self.Spec, error)
             switch_state(self, DevState.FAULT, status)
@@ -464,7 +442,7 @@ class Spec(Device):
             exists it will **not** be overwritten.
         :throws PyTango.DevFailed:
             If SPEC_ counter does not exist or if counter is already exported
-        """        
+        """
         util = Util.instance()
 
         counter_name = counter_info[0]
@@ -533,7 +511,7 @@ class Spec(Device):
             self.debug_stream("update variable '%s'", variable)
             execute(self.push_change_event, variable, json.dumps(value))
 
-        v = TgGevent.get_proxy(SpecVariable.SpecVariableA,
+        v = get_proxy(SpecVariable.SpecVariableA,
                                variable, self.Spec,
                                dispatchMode=SpecEventsDispatcher.FIREEVENT,
                                callbacks={"update": update})
@@ -551,10 +529,6 @@ class Spec(Device):
 
 def run(**kwargs):
     """Runs the Spec device server"""
-    logging.basicConfig(level=logging.DEBUG,
-                        format="%(threadName)10s %(asctime)s "
-                        "%(levelname)5s %(name)s: %(message)s")
-
     from PyTango.server import run
     from .SpecMotor import SpecMotor
     from .SpecCounter import SpecCounter
