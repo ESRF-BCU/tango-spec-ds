@@ -11,12 +11,22 @@
 
 """A TANGO device server for SPEC based on SpecClient."""
 
-try:
-    from TangoSpec import run
-except ImportError:
-    import os
-    import sys
-    sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
-    from TangoSpec import run
+def main():
+    import logging
+    logging.basicConfig(level=logging.DEBUG,
+                        format="%(threadName)10s %(asctime)s "
+                        "%(levelname)5s %(name)s: %(message)s")
 
-run()
+    try:
+        from TangoSpec import run
+    except ImportError:
+        import os
+        import sys
+        sys.path.append(os.path.join(os.path.dirname(__file__),
+                                     os.path.pardir))
+        from TangoSpec import run
+
+    run()
+
+if __name__ == "__main__": 
+    main()
