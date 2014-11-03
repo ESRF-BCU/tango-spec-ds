@@ -25,8 +25,7 @@ from SpecClient_gevent.SpecMotor import SpecMotorA
 from SpecClient_gevent.SpecClientError import SpecClientError
 
 from . import TgGevent
-from .SpecCommon import SpecState_2_TangoState, execute, switch_state
-
+from .SpecCommon import SpecMotorState_2_TangoState, execute, switch_state
 
 #: read-write scalar float attribute helper
 float_rw_mem_attr = partial(attribute, dtype=float, memorized=True,
@@ -155,7 +154,7 @@ class SpecMotor(Device):
 
     def __motorStateChanged(self, spec_state):
         old_state = self.get_state()
-        state = SpecState_2_TangoState[spec_state]
+        state = SpecMotorState_2_TangoState[spec_state]
 
         # Fire a position event with VALID quality
         if old_state == DevState.MOVING and state != DevState.MOVING:

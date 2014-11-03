@@ -17,8 +17,9 @@ import threading
 from PyTango import DevState
 
 from SpecClient_gevent import SpecMotor
+from SpecClient_gevent import SpecCounter
 
-SpecState_2_TangoState = {
+SpecMotorState_2_TangoState = {
     SpecMotor.NOTINITIALIZED: DevState.UNKNOWN,
     SpecMotor.UNUSABLE: DevState.UNKNOWN,
     SpecMotor.READY: DevState.ON,
@@ -27,6 +28,12 @@ SpecState_2_TangoState = {
     SpecMotor.ONLIMIT: DevState.ALARM,
 }
 
+SpecCounterState_2_TangoState = {
+    SpecCounter.NOTINITIALIZED: DevState.UNKNOWN,
+    SpecCounter.DISABLED: DevState.OFF,
+    SpecCounter.NOTCOUNTING: DevState.ON,
+    SpecCounter.COUNTING: DevState.RUNNING,
+}
 
 class _TangoWorker(threading.Thread):
 
