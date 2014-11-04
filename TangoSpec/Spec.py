@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 # This file is part of the Tango SPEC device server
 #
 # Copyright (c) 2014, European Synchrotron Radiation Facility.
 # Distributed under the GNU Lesser General Public License.
 # See LICENSE.txt for more info.
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 
 """A TANGO_ device server for SPEC_ based on SpecClient."""
 
@@ -16,8 +16,8 @@ import logging
 import numbers
 from functools import partial
 
-from PyTango import Util, Attr, Except, DevFailed
-from PyTango import DevState, CmdArgType, AttrWriteType, DispLevel, DebugIt
+from PyTango import DevState, Util, Attr, Except, DevFailed
+from PyTango import CmdArgType, AttrWriteType, DispLevel, DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
 
@@ -27,8 +27,8 @@ from SpecClient_gevent import SpecVariable
 from SpecClient_gevent import SpecEventsDispatcher
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-from .TgGevent import get_proxy
-from .SpecCommon import execute, switch_state
+from TangoSpec.TgGevent import get_proxy
+from TangoSpec.SpecCommon import execute, switch_state
 
 #: read-only spectrum string attribute helper
 str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
@@ -118,9 +118,8 @@ class Spec(Device):
         # Create asynchronous spec access to get the data
         try:
             dbg("Creating SPEC object...")
-            self.__spec = get_proxy(_Spec.Spec,
-                                             spec_name,
-                                             timeout=1000)
+            self.__spec = get_proxy(_Spec.Spec)
+            self.__spec.connectToSpec(spec_name, timeout=1.0)
             dbg("Created SPEC object")
         except SpecClientError as spec_error:
             exc("Error creating SPEC object")
@@ -128,13 +127,14 @@ class Spec(Device):
             switch_state(self, DevState.FAULT, status)
             return
 
+        cb = dict(update=self.__onUpdateOutput)
         try:
             dbg("Creating SPEC tty channel...")
             self.__spec_tty = get_proxy(SpecVariable.SpecVariableA,
-                                                 "output/tty", spec_name,
-                                                 prefix=False,
-                                                 dispatchMode=SpecEventsDispatcher.FIREEVENT,
-                                                 callbacks={"update" : self.update_output})
+                                        callbacks=cb)
+            self.__spec_tty.connectToSpec("output/tty", spec_name,
+                                          dispatchMode=SpecEventsDispatcher.FIREEVENT,
+                                          prefix=False)
             dbg("Created SPEC tty channel")
             switch_state(self, DevState.ON, "Connected to spec " + spec_name)
         except SpecClientError as spec_error:
@@ -145,16 +145,14 @@ class Spec(Device):
 
         for variable in self.Variables:
             try:
-                dbg("Creating variable %s...", variable)
                 self.__addVariable(variable)
-                dbg("Created variable %s", variable)
             except SpecClientError as spec_error:
                 exc("Error creating variable %s", variable)
                 msg = "Error adding variable '%s': %s" % (variable,
                                                           str(spec_error))
                 switch_state(self, DevState.FAULT, self.get_status + "\n" + msg)
 
-    def update_output(self, output):
+    def __onUpdateOutput(self, output):
         if isinstance(output, numbers.Number):
             text = "{0:12}".format(output)
         else:
@@ -507,20 +505,23 @@ class Spec(Device):
         return sorted(self.__variables)
 
     def __addVariable(self, variable):
+        self.__log.debug("Adding variable %s", variable)
         def update(value):
             self.debug_stream("update variable '%s'", variable)
             execute(self.push_change_event, variable, json.dumps(value))
 
-        v = get_proxy(SpecVariable.SpecVariableA,
-                               variable, self.Spec,
-                               dispatchMode=SpecEventsDispatcher.FIREEVENT,
-                               callbacks={"update": update})
+        cb = dict(update=update)
+        v = get_proxy(SpecVariable.SpecVariableA, callbacks=cb)
+        v.connectToSpec(variable, self.Spec,
+                        dispatchMode=SpecEventsDispatcher.FIREEVENT)
         self.__variables[variable] = v, update
 
-        v_attr = Attr(variable, CmdArgType.DevString, AttrWriteType.READ_WRITE)
+        v_attr = Attr(variable, CmdArgType.DevString,
+                      AttrWriteType.READ_WRITE)
         v_attr.set_change_event(True, False)
         v_attr.set_disp_level(DispLevel.EXPERT)
-        self.add_attribute(v_attr, self.read_Variable, self.write_Variable)
+        self.add_attribute(v_attr, self.read_Variable,
+                           self.write_Variable)
 
     def __removeVariable(self, variable):
         del self.__variables[variable]

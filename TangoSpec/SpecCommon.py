@@ -30,9 +30,15 @@ SpecMotorState_2_TangoState = {
 
 SpecCounterState_2_TangoState = {
     SpecCounter.NOTINITIALIZED: DevState.UNKNOWN,
-    SpecCounter.DISABLED: DevState.OFF,
     SpecCounter.NOTCOUNTING: DevState.ON,
     SpecCounter.COUNTING: DevState.RUNNING,
+}
+
+SpecCounterType_2_str = {
+    SpecCounter.UNKNOWN: 'Unknown',
+    SpecCounter.SCALER: 'Scaler',
+    SpecCounter.TIMER: 'Timer',
+    SpecCounter.MONITOR: 'Monitor'
 }
 
 class _TangoWorker(threading.Thread):
@@ -80,7 +86,7 @@ def switch_state(device, state=None, status=None):
     """Helper to switch state and/or status and send event"""
     if state is not None:
         device.set_state(state)
-        execute(device.push_change_event, "state")
+        execute(device.push_change_event, "state", state)
         if state in (DevState.ALARM, DevState.UNKNOWN, DevState.FAULT):
             msg = "State changed to " + str(state) 
             if status is not None:
@@ -88,7 +94,7 @@ def switch_state(device, state=None, status=None):
             device.error_stream(msg)
     if status is not None:
         device.set_status(status)
-        execute(device.push_change_event, "status")
+        execute(device.push_change_event, "status", status)
 
 
 def get_spec_names():

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 # This file is part of the Tango SPEC device server
 #
 # Copyright (c) 2014, European Synchrotron Radiation Facility.
 # Distributed under the GNU Lesser General Public License.
 # See LICENSE.txt for more info.
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 
 """A TANGO device server for SPEC based on SpecClient."""
 
@@ -20,12 +20,13 @@ from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
 
-from SpecClient_gevent.SpecCounter import SpecCounter as _SpecCounter
+from SpecClient_gevent.SpecCounter import SpecCounterA
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-from . import TgGevent
-from .SpecCommon import SpecCounterState_2_TangoState
-from .SpecCommon import execute, switch_state, get_spec_names
+from TangoSpec.TgGevent import get_proxy
+from TangoSpec.SpecCommon import SpecCounterState_2_TangoState
+from TangoSpec.SpecCommon import SpecCounterType_2_str
+from TangoSpec.SpecCommon import execute, switch_state, get_spec_names
 
 
 class SpecCounter(Device):
@@ -33,8 +34,11 @@ class SpecCounter(Device):
     __metaclass__ = DeviceMeta
 
     SpecCounter = device_property(dtype=str, default_value="",
-                                  doc="Name of spec session and counter e.g. host:spec:mon. "
-                                      "(if running along with a Spec it can be just the counter name")
+                                  doc="Name of spec session and "
+                                      "counter e.g. host:spec:mon. "
+                                      "(if running along with a Spec "
+                                      "it can be just the counter "
+                                      "name")                                  
 
     Value = attribute(dtype=float, access=AttrWriteType.READ)
 
@@ -74,13 +78,14 @@ class SpecCounter(Device):
         except ValueError:
             specs = get_spec_names()
             if not specs:
-                status = "Wrong SpecCounter property: Not inside a Spec. " \
-                         "Need the full SpecCounter"
+                status = "Wrong SpecCounter property: Not inside a " \
+                         "Spec. Need the full SpecCounter name"
                 switch_state(self, DevState.FAULT, status)
                 return
             elif len(specs) > 1:
-                status = "Wrong SpecCounter property: More than one Spec " \
-                         "in tango server. Need the full SpecCounter"
+                status = "Wrong SpecCounter property: More than " \
+                         "one Spec in tango server. Need the full " \
+                         "SpecCounter name"
                 switch_state(self, DevState.FAULT, status)
                 return
             else:
@@ -95,39 +100,53 @@ class SpecCounter(Device):
                   counterValueChanged=self.__counterValueChanged,
                   counterStateChanged=self.__counterStateChanged)
         try:
-            self.__spec_counter = TgGevent.get_proxy(_SpecCounter,
-                                                     counter,
-                                                     spec_version,
-                                                     callbacks=cb)
-            channel_value_name = "scaler/{0}/value".format(counter)
-            msg = "Connected to counter " + self.SpecCounter
-            switch_state(self, DevState.ON, msg)
+            self.__log.debug("Start creating Spec counter %s", counter)
+            self.__spec_counter = get_proxy(SpecCounterA, callbacks=cb)
+            self.__spec_counter.connectToSpec(counter, spec_version)
+            self.__log.debug("End creating Spec counter %s", counter)
         except SpecClientError as spec_error:
-            status = "Error connecting to Spec counter: %s" % str(spec_error)
+            status = "Error connecting to Spec counter: {0}".format(spec_error)
             switch_state(self, DevState.FAULT, status)
 
+    def __getTypeStr(self):
+        sc = self.__spec_counter
+        if sc:
+            ctype = SpecCounterType_2_str[sc.getType()]
+        else:
+            ctype = 'Unknown'            
+        return ctype
+
     def __counterConnected(self):
-        switch_state(self, DevState.ON, "Connected to counter " + self.SpecCounter)
+        state = DevState.ON
+        if self.get_state() != state:
+            ctype = self.__getTypeStr()
+            status = "Counter is now {0} ({1})".format(state, ctype)
+            switch_state(self, state, status)
 
     def __counterDisconnected(self):
-        switch_state(self, DevState.OFF, "counter disconnected")
+        state = DevState.OFF
+        if self.get_state() != state:
+            status = "Counter is now %s".format(state)
+            switch_state(self, state, status)        
 
     def __counterStateChanged(self, spec_state):
         old_state = self.get_state()
         state = SpecCounterState_2_TangoState[spec_state]
 
-        if self.__spec_counter:
-            value = self.__spec_counter.getValue()
-
+        sc = self.__spec_counter
+        if sc:
             # Fire a value event with VALID quality
             if old_state != DevState.RUNNING and state == DevState.RUNNING:
+                value = sc.getValue()
                 execute(self.push_change_event, "Value", value,
                         time.time(), AttrQuality.ATTR_CHANGING)
             elif old_state == DevState.RUNNING and state != DevState.RUNNING:
+                value = sc.getValue()
                 execute(self.push_change_event, "Value", value)
-
+        ctype = self.__getTypeStr()
+        status = "Counter is now {0} ({1})".format(state, ctype)
         # switch tango state and status attributes and send events
-        switch_state(self, state, "Counter is now %s" % (str(state),))
+        switch_state(self, state, status)
 
     def __counterValueChanged(self, value):
         if self.get_state() == DevState.RUNNING:
@@ -147,6 +166,9 @@ class SpecCounter(Device):
     def Stop(self):
         self.spec_counter.stop()
 
+    @command(dtype_in=bool, doc_in="enabled (True/False)")
+    def setEnabled(self, enabled):
+        self.spec_counter.setEnabled(enabled)
 
 def main():
     from PyTango.server import run

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 # This file is part of the Tango SPEC device server
 #
 # Copyright (c) 2014, European Synchrotron Radiation Facility.
 # Distributed under the GNU Lesser General Public License.
 # See LICENSE.txt for more info.
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 
 """A TANGO device server for SPEC based on SpecClient."""
 

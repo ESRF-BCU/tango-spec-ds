@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 # This file is part of the Tango SPEC device server
 #
 # Copyright (c) 2014, European Synchrotron Radiation Facility.
 # Distributed under the GNU Lesser General Public License.
 # See LICENSE.txt for more info.
-#------------------------------------------------------------------------------
+#---------------------------------------------------------------------
 
 """A TANGO motor device for SPEC based on SpecClient."""
 
@@ -21,12 +21,14 @@ from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
 
+import gevent
+
 from SpecClient_gevent.SpecMotor import SpecMotorA
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-from . import TgGevent
-from .SpecCommon import SpecMotorState_2_TangoState
-from .SpecCommon import execute, switch_state, get_spec_names
+from TangoSpec.TgGevent import get_proxy
+from TangoSpec.SpecCommon import SpecMotorState_2_TangoState
+from TangoSpec.SpecCommon import execute, switch_state, get_spec_names
 
 
 #: read-write scalar float attribute helper
@@ -39,8 +41,10 @@ class SpecMotor(Device):
     __metaclass__ = DeviceMeta
 
     SpecMotor = device_property(dtype=str, default_value="",
-                                doc="Name of spec session and motor e.g. host:spec:m0. "
-                                    "(if running along with a Spec it can be just the motor name")
+                                doc="Name of spec session and motor "
+                                    "e.g. host:spec:m0. (if running "
+                                    "along with a Spec it can be "
+                                    "just the motor name")
 
     Position = float_rw_mem_attr(doc="motor position")
 
@@ -51,9 +55,11 @@ class SpecMotor(Device):
     Sign = attribute(dtype=int, access=AttrWriteType.READ_WRITE,
                      display_level=DispLevel.EXPERT, doc="motor sign")
 
-    Offset = float_rw_mem_attr(display_level=DispLevel.EXPERT, doc="motor offset")
+    Offset = float_rw_mem_attr(display_level=DispLevel.EXPERT,
+                               doc="motor offset")
 
-    AccelerationTime = float_rw_mem_attr(unit="s", display_level=DispLevel.EXPERT,
+    AccelerationTime = float_rw_mem_attr(unit="s",
+                                         display_level=DispLevel.EXPERT,
                                          doc="motor acceleration time")
 
     Backlash = float_rw_mem_attr(display_level=DispLevel.EXPERT,
@@ -62,11 +68,14 @@ class SpecMotor(Device):
     #TODO: steps_per_unit,
 
     StepSize = float_rw_mem_attr(hw_memorized=True,
-                                 doc="motor step size (used by StepDown and StepUp)")
+                                 doc="motor step size (used by "
+                                     "StepDown and StepUp)")
 
-    Limit_Switches = attribute(dtype=(bool,), access=AttrWriteType.READ,
-                               max_dim_x=3, display_level=DispLevel.EXPERT,
-                               doc="limit switches (home, upper, lower)")
+    Limit_Switches = attribute(dtype=(bool,), max_dim_x=3,
+                               access=AttrWriteType.READ,
+                               display_level=DispLevel.EXPERT,
+                               doc="limit switches (home, upper, "
+                                   "lower)")
 
     @property
     def spec_motor(self):
@@ -90,7 +99,8 @@ class SpecMotor(Device):
         self.set_change_event("Position", True, False)
         self.set_change_event("StepSize", True, False)
 
-        switch_state(self, DevState.INIT, "Pending connection to " + self.SpecMotor)
+        switch_state(self, DevState.INIT,
+                     "Pending connection to " + self.SpecMotor)
 
         self.__spec_motor = None
         self.__spec_motor_name = None
@@ -103,13 +113,14 @@ class SpecMotor(Device):
         except ValueError:
             specs = get_spec_names()
             if not specs:
-                status = "Wrong SpecMotor property: Not inside a Spec. " \
-                         "Need the full SpecMotor"
+                status = "Wrong SpecMotor property: Not inside a " \
+                         "Spec. Need the full SpecMotor name"
                 switch_state(self, DevState.FAULT, status)
                 return
             elif len(specs) > 1:
-                status = "Wrong SpecMotor property: More than one Spec " \
-                         "in tango server. Need the full SpecMotor"
+                status = "Wrong SpecMotor property: More than one " \
+                         "Spec in tango server. Need the full " \
+                         "SpecMotor name"
                 switch_state(self, DevState.FAULT, status)
                 return
             else:
@@ -119,37 +130,41 @@ class SpecMotor(Device):
         self.__spec_version_name = spec_version
         self.__spec_motor_name = motor
 
+        cb=dict(connected=self.__motorConnected,
+                disconnected=self.__motorDisconnected,
+                motorPositionChanged=self.__motorPositionChanged,
+                motorStateChanged=self.__motorStateChanged,
+                motorLimitsChanged=self.__updateLimits)
         try:
-            cb=dict(connected=self.__motorConnected,
-                    disconnected=self.__motorDisconnected,
-                    motorPositionChanged=self.__motorPositionChanged,
-                    motorStateChanged=self.__motorStateChanged,
-                    motorLimitsChanged=self.__updateLimits)
             self.__log.debug("Start creating Spec motor %s", motor)
-            self.__spec_motor = TgGevent.get_proxy(SpecMotorA, motor,
-                                                   spec_version, callbacks=cb)
+            self.__spec_motor = get_proxy(SpecMotorA, callbacks=cb)
+            self.__spec_motor.connectToSpec(motor, spec_version)
             self.__log.debug("End creating Spec motor %s", motor)
         except SpecClientError as spec_error:
-            status = "Error connecting to Spec motor: %s" % str(spec_error)
+            status = "Error connecting to Spec motor: " \
+                     "{0}".format(spec_error)
             switch_state(self, DevState.FAULT, status)
-        import gevent
-        gevent.wait(timeout=0.1)
-        self.__log.debug("Finished init_device")
 
     def always_executed_hook(self):
         pass
 
     def __motorConnected(self):
-        switch_state(self, DevState.ON, "Connected to motor " + self.SpecMotor)
+        state = DevState.ON
+        if self.get_state() != state:
+            status = "Motor is now {0}".format(state)
+            switch_state(self, state, status) 
 
     def __motorDisconnected(self):
-        switch_state(self, DevState.OFF, "motor disconnected")
+        state = DevState.OFF
+        if self.get_state() != state:
+            status = "Motor is now %s".format(state)
+            switch_state(self, state, status)
 
     def __motorPositionChanged(self, position):
         state = self.get_state()
         if state == DevState.MOVING:
-            execute(self.push_change_event, "Position", position, time.time(),
-                    AttrQuality.ATTR_CHANGING)
+            execute(self.push_change_event, "Position", position,
+                    time.time(), AttrQuality.ATTR_CHANGING)
         else:
             execute(self.push_change_event, "Position", position)
 
@@ -163,24 +178,19 @@ class SpecMotor(Device):
             execute(self.push_change_event, "Position", position)
 
         # switch tango state and status attributes and send events
-        switch_state(self, state, "Motor is now %s" % (str(state),))
+        switch_state(self, state, "Motor is now %s".format(state))
 
     def __updateLimits(self):
-        self.__log.debug("start update limits on %s", self.get_name())
         if not self.__spec_motor:
             return
-        self.__log.debug("update limits 0")
         limits = self.__spec_motor.getLimits()
-        self.__log.debug("update limits 1")
         multi_prop = MultiAttrProp()
-        position_attr = self.get_device_attr().get_attr_by_name("position")
+        multi_attr = self.get_device_attr()
+        position_attr = multi_attr.get_attr_by_name("position")
         multi_prop = position_attr.get_properties(multi_prop)
-        self.__log.debug("update limits 2")
         multi_prop.min_value = str(limits[0])
         multi_prop.max_value = str(limits[1])
-        self.__log.debug("update limits 3")
         position_attr.set_properties(multi_prop)
-        self.__log.debug("finish update limits on %s", self.get_name())
 
     def read_Position(self):
         position = self.__spec_motor.getPosition()
@@ -212,7 +222,8 @@ class SpecMotor(Device):
 
     @DebugIt()
     def write_AccelerationTime(self, acceleration_time):
-        self.__spec_motor.setParameter("acceleration", acceleration_time)
+        self.__spec_motor.setParameter("acceleration",
+                                       acceleration_time)
 
     def read_Backlash(self):
         return self.__spec_motor.getParameter("backlash")
@@ -231,7 +242,8 @@ class SpecMotor(Device):
 
     def read_Limit_Switches(self):
         m = self.__spec_motor
-        return False, m.getParameter('high_lim_hit'), m.getParameter('low_lim_hit')
+        return False, m.getParameter('high_lim_hit'), \
+               m.getParameter('low_lim_hit')
 
     @command
     def Stop(self):
