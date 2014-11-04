@@ -188,7 +188,6 @@ class Spec(Device):
     @DebugIt()
     def read_Variable(self, attr):
         v_name = attr.get_name()
-        self.debug_stream("read variable '%s'", v_name)
         value = self.__variables[v_name][0].getValue()
         attr.set_value(json.dumps(value))
 
@@ -196,7 +195,7 @@ class Spec(Device):
     def write_Variable(self, attr):
         v_name, value = attr.get_name(), attr.get_write_value()
         value = json.loads(value)
-        self.info_stream("set %s = %s" % (v_name, value))
+        self.__log.debug("set %s = %s", v_name, value)
         self.__variables[v_name][0].setValue(value)
 
     # -------------------------------------------------------------------------
@@ -507,7 +506,7 @@ class Spec(Device):
     def __addVariable(self, variable):
         self.__log.debug("Adding variable %s", variable)
         def update(value):
-            self.debug_stream("update variable '%s'", variable)
+            self.__log.debug("update variable '%s'", variable)
             execute(self.push_change_event, variable, json.dumps(value))
 
         cb = dict(update=update)
