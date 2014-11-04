@@ -14,7 +14,7 @@
 import time
 import logging
 
-from PyTango import Util, DevState, CmdArgType
+from PyTango import DevState, CmdArgType
 from PyTango import AttrWriteType, AttrQuality
 from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
@@ -24,7 +24,8 @@ from SpecClient_gevent.SpecCounter import SpecCounter as _SpecCounter
 from SpecClient_gevent.SpecClientError import SpecClientError
 
 from . import TgGevent
-from .SpecCommon import SpecCounterState_2_TangoState, execute, switch_state
+from .SpecCommon import SpecCounterState_2_TangoState
+from .SpecCommon import execute, switch_state, get_spec_names
 
 
 class SpecCounter(Device):
@@ -46,12 +47,12 @@ class SpecCounter(Device):
 
     def get_spec_counter_name(self):
         return self.__spec_counter_name
-    
+
     @DebugIt()
     def delete_device(self):
         Device.delete_device(self)
         self.__spec_counter = None
-        
+
     @DebugIt()
     def init_device(self):
         self.__log = logging.getLogger(self.get_name())
@@ -62,29 +63,28 @@ class SpecCounter(Device):
 
         switch_state(self, DevState.INIT,
                      "Pending connection to " + self.SpecCounter)
-        
+
         self.__spec_counter = None
         self.__spec_counter_name = None
-        self.__spec_version_name = None        
-        
+        self.__spec_version_name = None
+
         try:
             host, session, counter = self.SpecCounter.split(":")
             spec_version = "%s:%s" % (host, session)
         except ValueError:
-            util = Util.instance()
-            tango_specs = util.get_device_list_by_class("Spec")
-            if not tango_specs:
+            specs = get_spec_names()
+            if not specs:
                 status = "Wrong SpecCounter property: Not inside a Spec. " \
                          "Need the full SpecCounter"
                 switch_state(self, DevState.FAULT, status)
                 return
-            elif len(tango_specs) > 1:
+            elif len(specs) > 1:
                 status = "Wrong SpecCounter property: More than one Spec " \
-                         "in tango server. Need the full SpecCounter"                
+                         "in tango server. Need the full SpecCounter"
                 switch_state(self, DevState.FAULT, status)
                 return
             else:
-                spec_version = tango_specs[0].Spec
+                spec_version = specs[0]
                 counter = self.SpecCounter
 
         self.__spec_version_name = spec_version
@@ -116,10 +116,15 @@ class SpecCounter(Device):
         old_state = self.get_state()
         state = SpecCounterState_2_TangoState[spec_state]
 
-        # Fire a value event with VALID quality
-        if old_state == DevState.RUNNING and state != DevState.RUNNING:
+        if self.__spec_counter:
             value = self.__spec_counter.getValue()
-            execute(self.push_change_event, "Value", value)
+
+            # Fire a value event with VALID quality
+            if old_state != DevState.RUNNING and state == DevState.RUNNING:
+                execute(self.push_change_event, "Value", value,
+                        time.time(), AttrQuality.ATTR_CHANGING)
+            elif old_state == DevState.RUNNING and state != DevState.RUNNING:
+                execute(self.push_change_event, "Value", value)
 
         # switch tango state and status attributes and send events
         switch_state(self, state, "Counter is now %s" % (str(state),))
@@ -138,7 +143,11 @@ class SpecCounter(Device):
     def Count(self, count_time):
         self.spec_counter.count(count_time)
 
-        
+    @command
+    def Stop(self):
+        self.spec_counter.stop()
+
+
 def main():
     from PyTango.server import run
     run((SpecCounter,), verbose=True)

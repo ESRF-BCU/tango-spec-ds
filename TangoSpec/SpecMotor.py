@@ -15,7 +15,7 @@ import time
 import logging
 from functools import partial
 
-from PyTango import Util, DevState, DispLevel, AttrWriteType, AttrQuality
+from PyTango import DevState, DispLevel, AttrWriteType, AttrQuality
 from PyTango import MultiAttrProp
 from PyTango import DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
@@ -25,7 +25,9 @@ from SpecClient_gevent.SpecMotor import SpecMotorA
 from SpecClient_gevent.SpecClientError import SpecClientError
 
 from . import TgGevent
-from .SpecCommon import SpecMotorState_2_TangoState, execute, switch_state
+from .SpecCommon import SpecMotorState_2_TangoState
+from .SpecCommon import execute, switch_state, get_spec_names
+
 
 #: read-write scalar float attribute helper
 float_rw_mem_attr = partial(attribute, dtype=float, memorized=True,
@@ -99,20 +101,19 @@ class SpecMotor(Device):
             host, session, motor = self.SpecMotor.split(":")
             spec_version = "%s:%s" % (host, session)
         except ValueError:
-            util = Util.instance()
-            tango_specs = util.get_device_list_by_class("Spec")
-            if not tango_specs:
+            specs = get_spec_names()
+            if not specs:
                 status = "Wrong SpecMotor property: Not inside a Spec. " \
                          "Need the full SpecMotor"
                 switch_state(self, DevState.FAULT, status)
                 return
-            elif len(tango_specs) > 1:
+            elif len(specs) > 1:
                 status = "Wrong SpecMotor property: More than one Spec " \
                          "in tango server. Need the full SpecMotor"
                 switch_state(self, DevState.FAULT, status)
                 return
             else:
-                spec_version = tango_specs[0].Spec
+                spec_version = specs[0]
                 motor = self.SpecMotor
 
         self.__spec_version_name = spec_version

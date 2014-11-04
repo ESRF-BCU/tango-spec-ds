@@ -14,7 +14,7 @@ import Queue
 import logging
 import threading
 
-from PyTango import DevState
+from PyTango import DevState, Util
 
 from SpecClient_gevent import SpecMotor
 from SpecClient_gevent import SpecCounter
@@ -89,3 +89,12 @@ def switch_state(device, state=None, status=None):
     if status is not None:
         device.set_status(status)
         execute(device.push_change_event, "status")
+
+
+def get_spec_names():
+    util = Util.instance()
+    tango_specs = util.get_device_list_by_class("Spec")
+    if not tango_specs:
+        return []
+    return [ts.Spec for ts in tango_specs]
+
