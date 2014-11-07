@@ -49,7 +49,7 @@ class Spec(Device):
     Spec = device_property(dtype=str, default_value="localhost:spec",
         doc="SPEC session (examples: localhost:spec, mach101:fourc)")
 
-    AutoDiscovery = device_property(dtype=bool, default_value=True,
+    AutoDiscovery = device_property(dtype=bool, default_value=False,
         doc="Enable/disable auto discovery")
 
     OutputBufferMaxLength = device_property(dtype=int,
