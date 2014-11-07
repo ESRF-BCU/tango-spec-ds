@@ -105,7 +105,7 @@ class SpecCounter(Device):
             self.__spec_counter.connectToSpec(counter, spec_version)
             self.__log.debug("End creating Spec counter %s", counter)
         except SpecClientError as spec_error:
-            status = "Error connecting to Spec counter: {0}".format(spec_error)
+            status = "Error connecting to Spec counter {0}".format(counter)
             switch_state(self, DevState.FAULT, status)
 
     def __getTypeStr(self):

@@ -91,7 +91,7 @@ def switch_state(device, state=None, status=None):
             msg = "State changed to " + str(state) 
             if status is not None:
                 msg += ": " + status
-            device.__log.error(msg)
+            logging.error("%s: %s", device.get_name(), msg)
     if status is not None:
         device.set_status(status)
         execute(device.push_change_event, "status")

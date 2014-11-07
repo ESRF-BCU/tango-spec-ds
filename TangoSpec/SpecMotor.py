@@ -141,8 +141,7 @@ class SpecMotor(Device):
             self.__spec_motor.connectToSpec(motor, spec_version)
             self.__log.debug("End creating Spec motor %s", motor)
         except SpecClientError as spec_error:
-            status = "Error connecting to Spec motor: " \
-                     "{0}".format(spec_error)
+            status = "Error connecting to Spec motor {0}".format(motor)
             switch_state(self, DevState.FAULT, status)
 
     def always_executed_hook(self):
@@ -152,7 +151,7 @@ class SpecMotor(Device):
         state = DevState.ON
         if self.get_state() != state:
             status = "Motor is now {0}".format(state)
-            switch_state(self, state, status) 
+            switch_state(self, state, status)
 
     def __motorDisconnected(self):
         state = DevState.OFF

@@ -109,6 +109,7 @@ class Spec(Device):
         self.__log = logging.getLogger(self.get_name())
         dbg = self.__log.debug
         exc = self.__log.exception
+        err = self.__log.error
         Device.init_device(self)
 
         spec_name = self.Spec
@@ -132,7 +133,8 @@ class Spec(Device):
             spec_host, spec_session = spec_name.split(":")
             dbg("Using spec %s:%s", spec_host, spec_session)
         except ValueError:
-            exc("Error parsing SPEC name")
+            err("Error parsing SPEC name")
+            dbg("Details:", exc_info=1)
             status = "Invalid spec '%s'. Must be in format " \
                      "<host>:<spec session>" % (spec_name,)
             switch_state(self, DevState.FAULT, status)
@@ -146,8 +148,9 @@ class Spec(Device):
             self.__spec.connectToSpec(spec_name, timeout=1.0)
             dbg("Created SPEC object")
         except SpecClientError as spec_error:
-            exc("Error creating SPEC object")
-            status = "Error connecting to Spec: %s" % str(spec_error)
+            err("Error creating SPEC object")
+            dbg("Details:", exc_info=1)
+            status = "Error connecting to Spec {0} output".format(spec_name)
             switch_state(self, DevState.FAULT, status)
             self.__constructing = False
             return
@@ -163,8 +166,9 @@ class Spec(Device):
             dbg("Created SPEC tty channel")
             switch_state(self, DevState.ON, "Connected to spec " + spec_name)
         except SpecClientError as spec_error:
-            exc("Error creating SPEC tty channel")
-            status = "Error connecting to Spec: %s" % str(spec_error)
+            err("Error creating SPEC tty channel")
+            dbg("Details:", exc_info=1)
+            status = "Error connecting to Spec {0} output".format(spec_name)
             switch_state(self, DevState.FAULT, status)
             self.__constructing = False
             return
@@ -173,7 +177,8 @@ class Spec(Device):
             try:
                 self.__addVariable(variable)
             except SpecClientError as spec_error:
-                exc("Error creating variable %s", variable)
+                err("Error creating variable %s", variable)
+                dbg("Details:", exc_info=1)
                 msg = "Error adding variable '%s': %s" % (variable,
                                                           str(spec_error))
                 switch_state(self, DevState.FAULT, self.get_status + "\n" + msg)
