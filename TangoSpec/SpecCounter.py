@@ -38,7 +38,7 @@ class SpecCounter(Device):
                                       "counter e.g. host:spec:mon. "
                                       "(if running along with a Spec "
                                       "it can be just the counter "
-                                      "name")                                  
+                                      "name")
 
     Value = attribute(dtype=float, access=AttrWriteType.READ)
 
@@ -113,7 +113,7 @@ class SpecCounter(Device):
         if sc:
             ctype = SpecCounterType_2_str[sc.getType()]
         else:
-            ctype = 'Unknown'            
+            ctype = 'Unknown'
         return ctype
 
     def __counterConnected(self):
@@ -127,11 +127,15 @@ class SpecCounter(Device):
         state = DevState.OFF
         if self.get_state() != state:
             status = "Counter is now %s".format(state)
-            switch_state(self, state, status)        
+            switch_state(self, state, status)
 
     def __counterStateChanged(self, spec_state):
         old_state = self.get_state()
         state = SpecCounterState_2_TangoState[spec_state]
+        ctype = self.__getTypeStr()
+        status = "Counter is now {0} ({1})".format(state, ctype)
+        # switch tango state and status attributes and send events
+        switch_state(self, state, status)
 
         sc = self.__spec_counter
         if sc:
@@ -143,10 +147,7 @@ class SpecCounter(Device):
             elif old_state == DevState.RUNNING and state != DevState.RUNNING:
                 value = sc.getValue()
                 execute(self.push_change_event, "Value", value)
-        ctype = self.__getTypeStr()
-        status = "Counter is now {0} ({1})".format(state, ctype)
-        # switch tango state and status attributes and send events
-        switch_state(self, state, status)
+
 
     def __counterValueChanged(self, value):
         if self.get_state() == DevState.RUNNING:
