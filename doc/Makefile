@@ -151,3 +151,7 @@ doctest:
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
+
+readme_md: singlehtml
+	$(SPHINXBUILD) -b singlehtml -D html_add_permalinks= $(ALLSPHINXOPTS)  $(BUILDDIR)/singlehtml
+	pandoc $(BUILDDIR)/singlehtml/index.html -f html -t markdown -S -s -o ../README.md
