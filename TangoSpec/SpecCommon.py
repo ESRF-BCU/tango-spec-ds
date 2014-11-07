@@ -86,7 +86,7 @@ def switch_state(device, state=None, status=None):
     """Helper to switch state and/or status and send event"""
     if state is not None:
         device.set_state(state)
-        execute(device.push_change_event, "state", state)
+        execute(device.push_change_event, "state")
         if state in (DevState.ALARM, DevState.UNKNOWN, DevState.FAULT):
             msg = "State changed to " + str(state) 
             if status is not None:
@@ -94,7 +94,7 @@ def switch_state(device, state=None, status=None):
             device.__log.error(msg)
     if status is not None:
         device.set_status(status)
-        execute(device.push_change_event, "status", status)
+        execute(device.push_change_event, "status")
 
 
 def get_spec_names():
