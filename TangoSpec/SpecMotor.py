@@ -178,7 +178,7 @@ class SpecMotor(Device):
             execute(self.push_change_event, "Position", position)
 
         # switch tango state and status attributes and send events
-        switch_state(self, state, "Motor is now %s".format(state))
+        switch_state(self, state, "Motor is now {0}".format(state))
 
     def __updateLimits(self):
         if not self.__spec_motor:
