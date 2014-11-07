@@ -9,8 +9,8 @@
 -   [API](index.html#document-api)
 -   [Source](https://gitlab.esrf.fr/andy.gotz/tango-spec/)
 
-Welcome to TangoSpec’s documentation![¶](#welcome-to-tangospec-s-documentation "Permalink to this headline")
-============================================================================================================
+Welcome to TangoSpec’s documentation!
+=====================================
 
 TangoSpec is a [TANGO](http://www.tango-controls.org/) device server
 which provides a [TANGO](http://www.tango-controls.org/) interface to
@@ -18,8 +18,8 @@ which provides a [TANGO](http://www.tango-controls.org/) interface to
 
 Contents:
 
-Getting started[¶](#getting-started "Permalink to this headline")
------------------------------------------------------------------
+Getting started
+---------------
 
 TangoSpec consists of a [TANGO](http://www.tango-controls.org/) device
 server called *TangoSpec*. The device server should contain at least one
@@ -31,20 +31,20 @@ dynamically on demand by executing commands on the *TangoSpec* device.
 This chapter describes how to install, setup, run and customize a new
 *TangoSpec* server.
 
-### Download & install[¶](#download-install "Permalink to this headline")
+### Download & install
 
-#### ESRF Production environment[¶](#esrf-production-environment "Permalink to this headline")
+#### ESRF Production environment
 
 For production environment, use the code from the bliss installer
 package called *TangoSpec*.
 
-#### Development environment[¶](#development-environment "Permalink to this headline")
+#### Development environment
 
 For development, you can get get the code from ESRF gitlab:
 
     $ git clone git@gitlab.esrf.fr:andy.gotz/tango-spec.git
 
-### Setup a new TangoSpec server[¶](#setup-a-new-tangospec-server "Permalink to this headline")
+### Setup a new TangoSpec server
 
 Go to jive and select *Edit ‣ Create server*. You will get a dialog like
 the one below:
@@ -80,7 +80,7 @@ instance):
 
     $ TangoSpec fourc
 
-### Auto discovery[¶](#auto-discovery "Permalink to this headline")
+### Auto discovery
 
 TangoSpec server can run with auto discovery enabled or disabled.
 
@@ -105,7 +105,7 @@ need to change the value of the `AutoDiscovery`{.docutils .literal}
 **and** execute the `Init`{.docutils .literal} command on the Spec TANGO
 device to allow changes to take place.
 
-### Spec session reconstruction[¶](#spec-session-reconstruction "Permalink to this headline")
+### Spec session reconstruction
 
 It is possible to synchronize the list of TANGO spec motors and counters
 with the list of motors and counters provided by Spec. To do this,
@@ -136,7 +136,7 @@ and counters exported by Spec will be present as TANGO devices. Example:
     >>> # now there is a Tango device of class SpecMotor for each motor in the spec session:
     >>> energy = PyTango.DeviceProxy("ID00/SPEC/enery")
 
-### Expose a motor[¶](#expose-a-motor "Permalink to this headline")
+### Expose a motor
 
 Each motor in [SPEC](http://www.certif.com/) can be represented as a
 [TANGO](http://www.tango-controls.org/) device of
@@ -173,7 +173,7 @@ device. This can be done in Jive or from a python shell:
     >>> fourc.addMotor(["istopy", "a/b/istopy", "spec_istopy"])
     >>> phi = PyTango.DeviceProxy("spec_istopy") # or  PyTango.DeviceProxy("a/b/istopy")
 
-### Expose a counter[¶](#expose-a-counter "Permalink to this headline")
+### Expose a counter
 
 Each counter in [SPEC](http://www.certif.com/) can be represented as a
 [TANGO](http://www.tango-controls.org/) device of
@@ -213,7 +213,7 @@ command `AddCounter()`{.xref .py .py-meth .docutils .literal} on the
     >>> fourc.addCounter(["det", "a/b/det", "spec_det"])
     >>> phi = PyTango.DeviceProxy("specdet") # or  PyTango.DeviceProxy("a/b/det")
 
-### Expose a variable[¶](#expose-a-variable "Permalink to this headline")
+### Expose a variable
 
 [SPEC](http://www.certif.com/) variables can be exported to
 [TANGO](http://www.tango-controls.org/) as dynamic attributes in the
@@ -236,7 +236,7 @@ Example how to expose a [SPEC](http://www.certif.com/) variable called
     >>> # expose a variable called 'FF_DIR'
     >>> fourc.AddVariable("FF_DIR")
 
-### Read/Write variables[¶](#read-write-variables "Permalink to this headline")
+### Read/Write variables
 
 The new [TANGO](http://www.tango-controls.org/) attribute will a
 read-write scalar string. In order to be able to represent proper data
@@ -271,7 +271,7 @@ opposite operation needs to be performed. Example:
     >>> FF_DIR = dict(config="/tmp/config", data="/tmp/data", sample="copper")
     >>> fourc.FF_DIR = json.dumps(FF_DIR)
 
-### Run a macro[¶](#run-a-macro "Permalink to this headline")
+### Run a macro
 
 To run a macro use the `ExecuteCmd()`{.xref .py .py-meth .docutils
 .literal} command. Example:
@@ -288,7 +288,7 @@ timeout exception will be raised (default timeout is 3s).
 
 To run long macros there are two options:
 
-#### Run macro asynchronously[¶](#run-macro-asynchronously "Permalink to this headline")
+#### Run macro asynchronously
 
 Tell the [TANGO](http://www.tango-controls.org/) server to start
 executing the macro asynchronously allowing you to do other stuff while
@@ -313,7 +313,7 @@ Note
 `GetReply()`{.xref .py .py-meth .docutils .literal} will block until the
 command finishes.
 
-#### Run macro synchronously[¶](#run-macro-synchronously "Permalink to this headline")
+#### Run macro synchronously
 
 If you want to be blocked until the macro finishes: First, configure the
 DeviceProxy timeout to a long time and then execute the macro using the
@@ -324,60 +324,60 @@ DeviceProxy timeout to a long time and then execute the macro using the
 
 Just make sure the ascan takes less than a week ;-)
 
-### Move a motor[¶](#move-a-motor "Permalink to this headline")
+### Move a motor
 
 Todo
 
 write Move a motor chapter
 
-### Listen to output[¶](#listen-to-output "Permalink to this headline")
+### Listen to output
 
 Todo
 
 write list to output chapter
 
-TangoSpec API[¶](#module-TangoSpec "Permalink to this headline")
-----------------------------------------------------------------
+TangoSpec API
+-------------
 
 A [TANGO](http://www.tango-controls.org/) device server which provides a
 [TANGO](http://www.tango-controls.org/) interface to
 [SPEC](http://www.certif.com/).
 
- `TangoSpec.`{.descclassname}`run`{.descname}(*\*\*kwargs*)[¶](#TangoSpec.run "Permalink to this definition")
+ `TangoSpec.`{.descclassname}`run`{.descname}(*\*\*kwargs*)
 :   Runs the Spec device server
 
- *class*`TangoSpec.`{.descclassname}`Spec`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec "Permalink to this definition")
+ *class*`TangoSpec.`{.descclassname}`Spec`{.descname}(*\*args*, *\*\*kwargs*)
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
     A [TANGO](http://www.tango-controls.org/) device server for
     [SPEC](http://www.certif.com/) based on SpecClient.
 
-     `SpecMotorList`{.descname}[¶](#TangoSpec.Spec.SpecMotorList "Permalink to this definition")
+     `SpecMotorList`{.descname}
     :   Attribute containning the list of all
         [SPEC](http://www.certif.com/) motors
 
-     `SpecCounterList`{.descname}[¶](#TangoSpec.Spec.SpecCounterList "Permalink to this definition")
+     `SpecCounterList`{.descname}
     :   Attribute containning the list of all
         [SPEC](http://www.certif.com/) counters
 
-     `MotorList`{.descname}[¶](#TangoSpec.Spec.MotorList "Permalink to this definition")
+     `MotorList`{.descname}
     :   Attribute containning the list of [SPEC](http://www.certif.com/)
         motors exported to [TANGO](http://www.tango-controls.org/)
 
-     `CounterList`{.descname}[¶](#TangoSpec.Spec.CounterList "Permalink to this definition")
+     `CounterList`{.descname}
     :   Attribute containning the list of [SPEC](http://www.certif.com/)
         counters exported to [TANGO](http://www.tango-controls.org/)
 
-     `VariableList`{.descname}[¶](#TangoSpec.Spec.VariableList "Permalink to this definition")
+     `VariableList`{.descname}
     :   Attribute containning the list of [SPEC](http://www.certif.com/)
         variables exported to [TANGO](http://www.tango-controls.org/)
 
-     `Output`{.descname}[¶](#TangoSpec.Spec.Output "Permalink to this definition")
+     `Output`{.descname}
     :   Attribute which reports [SPEC](http://www.certif.com/) console
         output (output/tty variable)
 
-     `ExecuteCmd`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.ExecuteCmd "Permalink to this definition")
+     `ExecuteCmd`{.descname}(*\*args*, *\*\*kwargs*)
     :   Execute a [SPEC](http://www.certif.com/) command synchronously.
         Use [`ExecuteCmdA()`{.xref .py .py-meth .docutils
         .literal}](index.html#TangoSpec.Spec.ExecuteCmdA "TangoSpec.Spec.ExecuteCmdA")
@@ -389,7 +389,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         ([*str*](http://docs.python.org/library/functions.html#str "(in Python v2.7)"))
         – the command to be executed (ex: `"wa"`{.docutils .literal} )
 
-     `ExecuteCmdA`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.ExecuteCmdA "Permalink to this definition")
+     `ExecuteCmdA`{.descname}(*\*args*, *\*\*kwargs*)
     :   Execute a [SPEC](http://www.certif.com/) command asynchronously.
 
         Parameters:
@@ -407,7 +407,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         int
 
-     `GetReply`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.GetReply "Permalink to this definition")
+     `GetReply`{.descname}(*\*args*, *\*\*kwargs*)
     :   Returns the reply of the [SPEC](http://www.certif.com/) command
         given by the cmd\_id, previously requested through
         [`ExecuteCmdA()`{.xref .py .py-meth .docutils
@@ -428,7 +428,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         str
 
-     `IsReplyArrived`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.IsReplyArrived "Permalink to this definition")
+     `IsReplyArrived`{.descname}(*\*args*, *\*\*kwargs*)
     :   Determines if a command executed previously with the given
         cmd\_id is finished.
 
@@ -446,7 +446,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         bool
 
-     `AddVariable`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.AddVariable "Permalink to this definition")
+     `AddVariable`{.descname}(*\*args*, *\*\*kwargs*)
     :   Export a [SPEC](http://www.certif.com/) variable to Tango by
         adding a new attribute to this device with the same name as the
         variable.
@@ -465,7 +465,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If the variable is already exposed in this
         [TANGO](http://www.tango-controls.org/) DS.
 
-     `RemoveVariable`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.RemoveVariable "Permalink to this definition")
+     `RemoveVariable`{.descname}(*\*args*, *\*\*kwargs*)
     :   Unexposes the given variable from this
         [TANGO](http://www.tango-controls.org/) DS.
 
@@ -483,7 +483,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If the variable is not exposed in this
         [TANGO](http://www.tango-controls.org/) DS
 
-     `AddMotor`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.AddMotor "Permalink to this definition")
+     `AddMotor`{.descname}(*\*args*, *\*\*kwargs*)
     :   Adds a new SpecMotor to this DS.
 
         *motor\_info* must be a sequence of strings with the following
@@ -516,7 +516,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If [SPEC](http://www.certif.com/) motor does not exist or if
         motor is already exported
 
-     `RemoveMotor`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.RemoveMotor "Permalink to this definition")
+     `RemoveMotor`{.descname}(*\*args*, *\*\*kwargs*)
     :   Removes the given SpecMotor from this DS.
 
         Parameters:
@@ -530,7 +530,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.RemoveMotor("th")
 
-     `AddCounter`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.AddCounter "Permalink to this definition")
+     `AddCounter`{.descname}(*\*args*, *\*\*kwargs*)
     :   Adds a new SpecCounter to this DS.
 
         *counter\_info* must be a sequence of strings with the following
@@ -563,7 +563,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If [SPEC](http://www.certif.com/) counter does not exist or if
         counter is already exported
 
-     `RemoveCounter`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.RemoveCounter "Permalink to this definition")
+     `RemoveCounter`{.descname}(*\*args*, *\*\*kwargs*)
     :   Removes the given SpecCounter from this DS.
 
         Parameters:
@@ -577,24 +577,24 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.RemoveCounter("th")
 
-     `Reconstruct`{.descname}(*\*args*, *\*\*kwargs*)[¶](#TangoSpec.Spec.Reconstruct "Permalink to this definition")
+     `Reconstruct`{.descname}(*\*args*, *\*\*kwargs*)
     :   Exposes to Tango all counters and motors that where found in
         SPEC.
 
- *class*`TangoSpec.`{.descclassname}`SpecMotor`{.descname}(*cl*, *name*)[¶](#TangoSpec.SpecMotor "Permalink to this definition")
+ *class*`TangoSpec.`{.descclassname}`SpecMotor`{.descname}(*cl*, *name*)
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
     A TANGO SPEC motor device based on SpecClient.
 
- *class*`TangoSpec.`{.descclassname}`SpecCounter`{.descname}(*cl*, *name*)[¶](#TangoSpec.SpecCounter "Permalink to this definition")
+ *class*`TangoSpec.`{.descclassname}`SpecCounter`{.descname}(*cl*, *name*)
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
     A TANGO SPEC counter device based on SpecClient.
 
-Indices and tables[¶](#indices-and-tables "Permalink to this headline")
-=======================================================================
+Indices and tables
+==================
 
 -   [*Index*](genindex.html)
 -   [*Module Index*](py-modindex.html)
