@@ -8,7 +8,7 @@ Getting started
 TangoSpec consists of a TANGO_ device server called *TangoSpec*. The device
 server should contain at least one device of TANGO_ class *TangoSpec*.
 
-All other devices (*TangoSpecMotor*, *TangoSpecCounter*) can be created
+All other devices (*SpecMotor*, *SpecCounter*) can be created
 dynamically on demand by executing commands on the *TangoSpec* device.
 
 This chapter describes how to install, setup, run and customize a new *TangoSpec*
@@ -32,7 +32,7 @@ For development, you can get get the code from ESRF gitlab::
 
     $ git clone git@gitlab.esrf.fr:andy.gotz/tango-spec.git
 
-.. _tangospec_setup: 
+.. _tangospec_setup:
 
 Setup a new TangoSpec server
 ----------------------------
@@ -45,20 +45,84 @@ get a dialog like the one below:
     :align: center
 
 The *Server* field should be ``TangoSpec/<instance>`` where instance is a name at
-your choice (usually the name of the spec session).
+your choice (usually the name of the spec session, ex: TangoSpec/fourc).
 
 The *Class* field should be ``TangoSpec``.
 
 The *Devices* field should be the TANGO_ device name according to the convention
-in place at the institute.
+in place at the institute (ex: ID00/spec/fourc).
 
 Press *Register server*.
 
-Now go to the command line and type::
+Select the Server tab, go to node TangoSpec/<instance>/Spec/<device name>/properties.
+Add a new property called `Spec` by clicking the `New property` button.
+Set the `Spec` property value to the spec session name (example: machine01:fourc).
+
+Optional:
+    By default, Spec server will start with auto discovery deactivated.
+    This means that motors and counters will **not** be automatically added.
+    You can changed this behavior by setting a new property called `AutoDiscovery`
+    and setting it to ``True`` (See :ref:`tangospec_auto_discovery`)
+
+Now go to the command line and type (replace *fourc* with your server instance)::
 
     $ TangoSpec fourc
 
-(replace *fourc* with your server instance)
+.. _tangospec_auto_discovery:
+
+Auto discovery
+--------------
+
+TangoSpec server can run with auto discovery enabled or disabled.
+
+When auto discovery is enabled, every time the TangoSpec server starts it will
+synchronize the list of motors and counters with the list provided by spec.
+All motors and counters from spec will be automatically exposed as TANGO devices.
+
+When auto discovery is disabled, tango motors and counters must be created manually
+(see :ref:`tangospec_expose_motor` and :ref:`tangospec_expose_counter`).
+
+Auto discovery is disabled by default unless you set the ``AutoDiscovery`` property
+of the Spec device has been set to ``True``.
+
+.. note::
+
+    When a Spec TANGO server is running, to switch auto discovery mode, you need to
+    change the value of the ``AutoDiscovery`` **and** execute the ``Init`` command
+    on the Spec TANGO device to allow changes to take place.
+
+
+Spec session reconstruction
+---------------------------
+
+It is possible to synchronize the list of TANGO spec motors and counters with the list
+of motors and counters provided by Spec.
+To do this, simply execute the command ``Reconstruct`` provided by the Spec TANGO device
+server. After executing this command all motors and counters exported by Spec will be
+present as TANGO devices. Example::
+
+    >>> import PyTango
+    >>> fourc = PyTango.DeviceProxy("ID00/SPEC/fourc")
+
+    # tells you the list of existing spec motors
+    >>> fourc.SpecMotorList
+    ['energy', 'ffsamy', 'ffsamz', 'istopy', 'istopz']
+
+    >>> # tells you which spec motors are exposed as tango motors
+    >>> fourc.MotorList
+    []
+
+    >>> fourc.Reconstruct()
+
+    >>> fourc.MotorList
+    ['energy (ID00/Spec/energy)',
+     'ffsamy (ID00/Spec/ffsamy)',
+     'ffsamz (ID00/Spec/ffsamz)',
+     'istopy (ID00/Spec/istopy)',
+     'istopz (ID00/Spec/istopz)']
+
+    >>> # now there is a Tango device of class SpecMotor for each motor in the spec session:
+    >>> energy = PyTango.DeviceProxy("ID00/SPEC/enery")
 
 .. _tangospec_expose_motor:
 
@@ -66,14 +130,14 @@ Expose a motor
 --------------
 
 Each motor in SPEC_ can be represented as a TANGO_ device of TANGO_ class
-*TangoSpecMotor*. 
+*SpecMotor*.
 
 When you setup a new *TangoSpec* device server it will not export any of the
-SPEC_ motors. 
+SPEC_ motors (unless : ref:`auto discovery <tangospec_auto_discovery>`.
 
 You have to specify which SPEC_ motors you want to be exported to SPEC.
 To export a SPEC_ motor to spec just execute the TANGO_ command
-:meth:`~TangoSpec.TangoSpec.AddMotor` on the *TangoSpec* device. 
+:meth:`~TangoSpec.TangoSpec.AddMotor` on the *TangoSpec* device.
 This can be done in Jive or from a python shell::
 
     >>> import PyTango
@@ -85,20 +149,58 @@ This can be done in Jive or from a python shell::
     istopy
     istopz
 
-    >>> # creates a TangoSpecMotor called 'ID00/SPEC/energy' and with alias 'energy'
-    >>>
+    >>> # creates a SpecMotor called 'ID00/SPEC/energy' and with alias 'energy'
     >>> fourc.addMotor(["energy"])
     >>> energy = PyTango.DeviceProxy("energy") # or  PyTango.DeviceProxy("ID00/SPEC/energy")
 
-    >>> # creates a TangoSpecMotor called 'a/b/theta' and with alias 'theta'
-    >>>
-    >>> fourc.addMotor(["theta", "a/b/theta"])
-    >>> theta = PyTango.DeviceProxy("theta") # or  PyTango.DeviceProxy("a/b/theta")
+    >>> # creates a SpecMotor called 'a/b/ffsamy' and with alias 'ffsamy'
+    >>> fourc.addMotor(["theta", "a/b/ffsamy"])
+    >>> theta = PyTango.DeviceProxy("ffsamy") # or  PyTango.DeviceProxy("a/b/ffsamy")
 
-    >>> # creates a TangoSpecMotor called 'a/b/phi' and with alias 'spec_phi'
-    >>> 
-    >>> fourc.addMotor(["phi", "a/b/phi", "spec_phi"])
-    >>> phi = PyTango.DeviceProxy("spec_phi") # or  PyTango.DeviceProxy("a/b/phi")
+    >>> # creates a SpecMotor called 'a/b/istopy' and with alias 'spec_istopy'
+    >>> fourc.addMotor(["istopy", "a/b/istopy", "spec_istopy"])
+    >>> phi = PyTango.DeviceProxy("spec_istopy") # or  PyTango.DeviceProxy("a/b/istopy")
+
+.. _tangospec_expose_counter:
+
+Expose a counter
+----------------
+
+Each counter in SPEC_ can be represented as a TANGO_ device of TANGO_ class
+*SpecCounter*.
+
+When you setup a new *TangoSpec* device server it will not export any of the
+SPEC_ counters.
+
+You have to specify which SPEC_ counters you want to be exported to SPEC.
+To export a SPEC_ counter to spec just execute the TANGO_ command
+:meth:`~TangoSpec.TangoSpec.AddCounter` on the *TangoSpec* device.
+This can be done in Jive or from a python shell::
+
+    >>> import PyTango
+    >>> fourc = PyTango.DeviceProxy("ID00/SPEC/fourc")
+    >>> fourc.SpecCounterList
+    sec
+    mon
+    det
+    c1
+    c2
+    c3
+
+    >>> # creates a SpecCounter called 'ID00/SPEC/sec' and with alias 'sec'
+    >>>
+    >>> fourc.addCounter(["sec"])
+    >>> sec = PyTango.DeviceProxy("sec") # or  PyTango.DeviceProxy("ID00/SPEC/sec")
+
+    >>> # creates a SpecCounter called 'a/b/sec' and with alias 'sec'
+    >>>
+    >>> fourc.addCounter(["sec", "a/b/sec"])
+    >>> theta = PyTango.DeviceProxy("sec") # or  PyTango.DeviceProxy("a/b/sec")
+
+    >>> # creates a SpecCounter called 'a/b/det' and with alias 'spec_det'
+    >>>
+    >>> fourc.addCounter(["det", "a/b/det", "spec_det"])
+    >>> phi = PyTango.DeviceProxy("specdet") # or  PyTango.DeviceProxy("a/b/det")
 
 .. _tangospec_expose_variable:
 
@@ -140,7 +242,7 @@ SPEC_ variable called *FF_DIR* (the variable is an associative array)::
     {u'config': u'/users/homer/Fourc/config',
      u'data': u'/users/homer/Fourc/data',
      u'sample': u'niquel'}
- 
+
     >>> type(FF_DIR)
     dict
 
@@ -177,21 +279,22 @@ Tell the TANGO_ server to start executing the macro asynchronously allowing
 you to do other stuff while the macro is running. For this use the command
 :meth:`~TangoSpec.TangoSpec.ExecuteCmdA`.
 
-If you are interested you can monitor if the macro as finished 
+If you are interested you can monitor if the macro as finished
 (:meth:`~TangoSpec.TangoSpec.IsReplyArrived` command) and optionaly
 get the result of it's execution (:meth:`~TangoSpec.TangoSpec.GetReply`).
 Example ::
 
    >>> ascan_id = fourc.ExecuteCmd("ascan phi 0 90 100 1.0")
    >>> # do my stuff while the ascan is running...
-   
+
    >>> while not fourc.IsReplyArrived(ascan_id):
    ...     # do more stuff
 
    >>> ascan_result = fourc.GetReply(ascan_id)
 
 .. note::
-     :meth:`~TangoSpec.TangoSpec.GetReply` will block until the command 
+
+     :meth:`~TangoSpec.TangoSpec.GetReply` will block until the command
      finishes.
 
 Run macro synchronously
@@ -217,5 +320,6 @@ Move a motor
 
 Listen to output
 ----------------
+
 
 .. todo:: write list to output chapter

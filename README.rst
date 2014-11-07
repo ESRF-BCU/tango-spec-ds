@@ -2,10 +2,12 @@
 Welcome to TangoSpec
 ====================
 
-TangoSpec consists of a TANGO_ device server called *TangoSpec*. The device
-server should contain at least one device of TANGO_ class *TangoSpec*.
+TangoSpec consists of a TANGO device server called *TangoSpec*. The device
+server should contain at least one device of TANGO class *TangoSpec*.
 
-All other devices (*TangoSpecMotor*, *TangoSpecCounter*) can be created
+The full documentation can be found `here <doc/singlehtml/index.html>`_
+
+All other devices (*SpecMotor*, *TangoSpecCounter*) can be created
 dynamically on demand by executing commands on the *TangoSpec* device.
 
 Start a server with::

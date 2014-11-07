@@ -1,0 +1,662 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <title>TangoSpec 1.0 documentation</title>
+    
+    
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link href="_static/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="_static/css/custom.css" rel="stylesheet" type="text/css">
+    <link href="http://fonts.googleapis.com/css?family=Raleway" rel="stylesheet" type="text/css">
+    
+    <script src="http://code.jquery.com/jquery-latest.js"></script>
+    <script src="_static/js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0.0final0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <link rel="top" title="None" href="index.html#document-index" />
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link rel="shortcut icon" href="_static/favicon.ico">
+</head>
+<body class="container">
+    <a href="http://www.tango-controls.org" class="logo"><img src="_static/images/logo.png" alt=""></a>
+    <div class="clearfix"></div>
+    <div class="navbar">
+        <div class="navbar-inner">
+            <ul class="nav">
+                <li><a href="index.html#document-index">Home</a></li>
+<li><a href="index.html#document-getting_started">Getting started</a></li>
+<li><a href="index.html#document-api">API</a></li>
+<li><a href="https://gitlab.esrf.fr/andy.gotz/tango-spec/">Source</a></li>
+            </ul>
+            <form class="navbar-form pull-right" action="search.html" method="get">
+                <input type="text" class="search span3" name="q" placeholder="Search documentation ...">
+                <input type="hidden" name="check_keywords" value="yes" >
+                <input type="hidden" name="area" value="default" >
+            </form>
+        </div>
+    </div>
+    <div class="row">
+        <div class="span9">
+            
+  <div class="section" id="welcome-to-tangospec-s-documentation">
+<h1>Welcome to TangoSpec&#8217;s documentation!<a class="headerlink" href="#welcome-to-tangospec-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>TangoSpec is a <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> device server which provides a <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> interface to <a class="reference external" href="http://www.certif.com/">SPEC</a>.</p>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<span id="document-getting_started"></span><div class="section" id="getting-started">
+<span id="tangospec-getting-started"></span><h2>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>TangoSpec consists of a <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> device server called <em>TangoSpec</em>. The device
+server should contain at least one device of <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> class <em>TangoSpec</em>.</p>
+<p>All other devices (<em>SpecMotor</em>, <em>SpecCounter</em>) can be created
+dynamically on demand by executing commands on the <em>TangoSpec</em> device.</p>
+<p>This chapter describes how to install, setup, run and customize a new <em>TangoSpec</em>
+server.</p>
+<div class="section" id="download-install">
+<span id="tangospec-download-install"></span><h3>Download &amp; install<a class="headerlink" href="#download-install" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="esrf-production-environment">
+<h4>ESRF Production environment<a class="headerlink" href="#esrf-production-environment" title="Permalink to this headline">¶</a></h4>
+<p>For production environment, use the code from the bliss installer package
+called <em>TangoSpec</em>.</p>
+</div>
+<div class="section" id="development-environment">
+<h4>Development environment<a class="headerlink" href="#development-environment" title="Permalink to this headline">¶</a></h4>
+<p>For development, you can get get the code from ESRF gitlab:</p>
+<div class="highlight-python"><pre>$ git clone git@gitlab.esrf.fr:andy.gotz/tango-spec.git</pre>
+</div>
+</div>
+</div>
+<div class="section" id="setup-a-new-tangospec-server">
+<span id="tangospec-setup"></span><h3>Setup a new TangoSpec server<a class="headerlink" href="#setup-a-new-tangospec-server" title="Permalink to this headline">¶</a></h3>
+<p>Go to jive and select <em class="menuselection">Edit ‣ Create server</em>. You will
+get a dialog like the one below:</p>
+<img alt="Create TangoSpec server Jive dialog" class="align-center" src="_images/jive_create_server.png" />
+<p>The <em>Server</em> field should be <tt class="docutils literal"><span class="pre">TangoSpec/&lt;instance&gt;</span></tt> where instance is a name at
+your choice (usually the name of the spec session, ex: TangoSpec/fourc).</p>
+<p>The <em>Class</em> field should be <tt class="docutils literal"><span class="pre">TangoSpec</span></tt>.</p>
+<p>The <em>Devices</em> field should be the <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> device name according to the convention
+in place at the institute (ex: ID00/spec/fourc).</p>
+<p>Press <em>Register server</em>.</p>
+<p>Select the Server tab, go to node TangoSpec/&lt;instance&gt;/Spec/&lt;device name&gt;/properties.
+Add a new property called <cite>Spec</cite> by clicking the <cite>New property</cite> button.
+Set the <cite>Spec</cite> property value to the spec session name (example: machine01:fourc).</p>
+<dl class="docutils">
+<dt>Optional:</dt>
+<dd>By default, Spec server will start with auto discovery deactivated.
+This means that motors and counters will <strong>not</strong> be automatically added.
+You can changed this behavior by setting a new property called <cite>AutoDiscovery</cite>
+and setting it to <tt class="docutils literal"><span class="pre">True</span></tt> (See <a class="reference internal" href="index.html#tangospec-auto-discovery"><em>Auto discovery</em></a>)</dd>
+</dl>
+<p>Now go to the command line and type (replace <em>fourc</em> with your server instance):</p>
+<div class="highlight-python"><pre>$ TangoSpec fourc</pre>
+</div>
+</div>
+<div class="section" id="auto-discovery">
+<span id="tangospec-auto-discovery"></span><h3>Auto discovery<a class="headerlink" href="#auto-discovery" title="Permalink to this headline">¶</a></h3>
+<p>TangoSpec server can run with auto discovery enabled or disabled.</p>
+<p>When auto discovery is enabled, every time the TangoSpec server starts it will
+synchronize the list of motors and counters with the list provided by spec.
+All motors and counters from spec will be automatically exposed as TANGO devices.</p>
+<p>When auto discovery is disabled, tango motors and counters must be created manually
+(see <a class="reference internal" href="index.html#tangospec-expose-motor"><em>Expose a motor</em></a> and <a class="reference internal" href="index.html#tangospec-expose-counter"><em>Expose a counter</em></a>).</p>
+<p>Auto discovery is disabled by default unless you set the <tt class="docutils literal"><span class="pre">AutoDiscovery</span></tt> property
+of the Spec device has been set to <tt class="docutils literal"><span class="pre">True</span></tt>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">When a Spec TANGO server is running, to switch auto discovery mode, you need to
+change the value of the <tt class="docutils literal"><span class="pre">AutoDiscovery</span></tt> <strong>and</strong> execute the <tt class="docutils literal"><span class="pre">Init</span></tt> command
+on the Spec TANGO device to allow changes to take place.</p>
+</div>
+</div>
+<div class="section" id="spec-session-reconstruction">
+<h3>Spec session reconstruction<a class="headerlink" href="#spec-session-reconstruction" title="Permalink to this headline">¶</a></h3>
+<p>It is possible to synchronize the list of TANGO spec motors and counters with the list
+of motors and counters provided by Spec.
+To do this, simply execute the command <tt class="docutils literal"><span class="pre">Reconstruct</span></tt> provided by the Spec TANGO device
+server. After executing this command all motors and counters exported by Spec will be
+present as TANGO devices. Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">PyTango</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/SPEC/fourc&quot;</span><span class="p">)</span>
+
+<span class="go"># tells you the list of existing spec motors</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">SpecMotorList</span>
+<span class="go">[&#39;energy&#39;, &#39;ffsamy&#39;, &#39;ffsamz&#39;, &#39;istopy&#39;, &#39;istopz&#39;]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># tells you which spec motors are exposed as tango motors</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">MotorList</span>
+<span class="go">[]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">Reconstruct</span><span class="p">()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">MotorList</span>
+<span class="go">[&#39;energy (ID00/Spec/energy)&#39;,</span>
+<span class="go"> &#39;ffsamy (ID00/Spec/ffsamy)&#39;,</span>
+<span class="go"> &#39;ffsamz (ID00/Spec/ffsamz)&#39;,</span>
+<span class="go"> &#39;istopy (ID00/Spec/istopy)&#39;,</span>
+<span class="go"> &#39;istopz (ID00/Spec/istopz)&#39;]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># now there is a Tango device of class SpecMotor for each motor in the spec session:</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">energy</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/SPEC/enery&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="expose-a-motor">
+<span id="tangospec-expose-motor"></span><h3>Expose a motor<a class="headerlink" href="#expose-a-motor" title="Permalink to this headline">¶</a></h3>
+<p>Each motor in <a class="reference external" href="http://www.certif.com/">SPEC</a> can be represented as a <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> device of <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> class
+<em>SpecMotor</em>.</p>
+<p>When you setup a new <em>TangoSpec</em> device server it will not export any of the
+<a class="reference external" href="http://www.certif.com/">SPEC</a> motors (unless : ref:<cite>auto discovery &lt;tangospec_auto_discovery&gt;</cite>.</p>
+<p>You have to specify which <a class="reference external" href="http://www.certif.com/">SPEC</a> motors you want to be exported to SPEC.
+To export a <a class="reference external" href="http://www.certif.com/">SPEC</a> motor to spec just execute the <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> command
+<tt class="xref py py-meth docutils literal"><span class="pre">AddMotor()</span></tt> on the <em>TangoSpec</em> device.
+This can be done in Jive or from a python shell:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">PyTango</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/SPEC/fourc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">SpecMotorList</span>
+<span class="go">energy</span>
+<span class="go">ffsamy</span>
+<span class="go">ffsamz</span>
+<span class="go">istopy</span>
+<span class="go">istopz</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># creates a SpecMotor called &#39;ID00/SPEC/energy&#39; and with alias &#39;energy&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">addMotor</span><span class="p">([</span><span class="s">&quot;energy&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">energy</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;energy&quot;</span><span class="p">)</span> <span class="c"># or  PyTango.DeviceProxy(&quot;ID00/SPEC/energy&quot;)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># creates a SpecMotor called &#39;a/b/ffsamy&#39; and with alias &#39;ffsamy&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">addMotor</span><span class="p">([</span><span class="s">&quot;theta&quot;</span><span class="p">,</span> <span class="s">&quot;a/b/ffsamy&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">theta</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ffsamy&quot;</span><span class="p">)</span> <span class="c"># or  PyTango.DeviceProxy(&quot;a/b/ffsamy&quot;)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># creates a SpecMotor called &#39;a/b/istopy&#39; and with alias &#39;spec_istopy&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">addMotor</span><span class="p">([</span><span class="s">&quot;istopy&quot;</span><span class="p">,</span> <span class="s">&quot;a/b/istopy&quot;</span><span class="p">,</span> <span class="s">&quot;spec_istopy&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">phi</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;spec_istopy&quot;</span><span class="p">)</span> <span class="c"># or  PyTango.DeviceProxy(&quot;a/b/istopy&quot;)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="expose-a-counter">
+<span id="tangospec-expose-counter"></span><h3>Expose a counter<a class="headerlink" href="#expose-a-counter" title="Permalink to this headline">¶</a></h3>
+<p>Each counter in <a class="reference external" href="http://www.certif.com/">SPEC</a> can be represented as a <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> device of <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> class
+<em>SpecCounter</em>.</p>
+<p>When you setup a new <em>TangoSpec</em> device server it will not export any of the
+<a class="reference external" href="http://www.certif.com/">SPEC</a> counters.</p>
+<p>You have to specify which <a class="reference external" href="http://www.certif.com/">SPEC</a> counters you want to be exported to SPEC.
+To export a <a class="reference external" href="http://www.certif.com/">SPEC</a> counter to spec just execute the <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> command
+<tt class="xref py py-meth docutils literal"><span class="pre">AddCounter()</span></tt> on the <em>TangoSpec</em> device.
+This can be done in Jive or from a python shell:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">PyTango</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/SPEC/fourc&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">SpecCounterList</span>
+<span class="go">sec</span>
+<span class="go">mon</span>
+<span class="go">det</span>
+<span class="go">c1</span>
+<span class="go">c2</span>
+<span class="go">c3</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># creates a SpecCounter called &#39;ID00/SPEC/sec&#39; and with alias &#39;sec&#39;</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">addCounter</span><span class="p">([</span><span class="s">&quot;sec&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sec</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;sec&quot;</span><span class="p">)</span> <span class="c"># or  PyTango.DeviceProxy(&quot;ID00/SPEC/sec&quot;)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># creates a SpecCounter called &#39;a/b/sec&#39; and with alias &#39;sec&#39;</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">addCounter</span><span class="p">([</span><span class="s">&quot;sec&quot;</span><span class="p">,</span> <span class="s">&quot;a/b/sec&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">theta</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;sec&quot;</span><span class="p">)</span> <span class="c"># or  PyTango.DeviceProxy(&quot;a/b/sec&quot;)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># creates a SpecCounter called &#39;a/b/det&#39; and with alias &#39;spec_det&#39;</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">addCounter</span><span class="p">([</span><span class="s">&quot;det&quot;</span><span class="p">,</span> <span class="s">&quot;a/b/det&quot;</span><span class="p">,</span> <span class="s">&quot;spec_det&quot;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">phi</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;specdet&quot;</span><span class="p">)</span> <span class="c"># or  PyTango.DeviceProxy(&quot;a/b/det&quot;)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="expose-a-variable">
+<span id="tangospec-expose-variable"></span><h3>Expose a variable<a class="headerlink" href="#expose-a-variable" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference external" href="http://www.certif.com/">SPEC</a> variables can be exported to <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> as dynamic attributes in the <em>TangoSpec</em>
+device.</p>
+<dl class="docutils">
+<dt>To expose an existing <a class="reference external" href="http://www.certif.com/">SPEC</a> variable to <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> just execute the <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> command</dt>
+<dd><tt class="xref py py-meth docutils literal"><span class="pre">AddVariable()</span></tt> on the <em>TangoSpec</em> device.</dd>
+</dl>
+<p>As a result, a new attribute with the same name as the <a class="reference external" href="http://www.certif.com/">SPEC</a> variable name will
+be created in the <em>TangoSpec</em> device.</p>
+<p>Example how to expose a <a class="reference external" href="http://www.certif.com/">SPEC</a> variable called <em>FF_DIR</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">PyTango</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/SPEC/Fourc&quot;</span><span class="p">)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># expose a variable called &#39;FF_DIR&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">AddVariable</span><span class="p">(</span><span class="s">&quot;FF_DIR&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="read-write-variables">
+<span id="tangospec-readwrite-variable"></span><h3>Read/Write variables<a class="headerlink" href="#read-write-variables" title="Permalink to this headline">¶</a></h3>
+<p>The new <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> attribute will a read-write scalar string.
+In order to be able to represent proper data types the string is encoded in
+<a class="reference external" href="http://docs.python.org/library/json.html#module-json" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">json</span></tt></a> format. In order to read the value of a <a class="reference external" href="http://www.certif.com/">SPEC</a> variable you must
+first decode it from <a class="reference external" href="http://docs.python.org/library/json.html#module-json" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">json</span></tt></a>. Fortunately, <a class="reference external" href="http://docs.python.org/library/json.html#module-json" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">json</span></tt></a> is a well known
+format. Example how to read the value of a previously exposed (see chapter above)
+<a class="reference external" href="http://www.certif.com/">SPEC</a> variable called <em>FF_DIR</em> (the variable is an associative array):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FF_DIR</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">fourc</span><span class="o">.</span><span class="n">FF_DIR</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">FF_DIR</span>
+<span class="go">{u&#39;config&#39;: u&#39;/users/homer/Fourc/config&#39;,</span>
+<span class="go"> u&#39;data&#39;: u&#39;/users/homer/Fourc/data&#39;,</span>
+<span class="go"> u&#39;sample&#39;: u&#39;niquel&#39;}</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">FF_DIR</span><span class="p">)</span>
+<span class="go">dict</span>
+</pre></div>
+</div>
+<p>Notice that the value of FF_DIR is <strong>not</strong> a string but an actual dictionary.</p>
+<p>To write a new value into a <a class="reference external" href="http://www.certif.com/">SPEC</a> variable the opposite operation needs to be
+performed. Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">FF_DIR</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="s">&quot;/tmp/config&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="s">&quot;/tmp/data&quot;</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="s">&quot;copper&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">FF_DIR</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">FF_DIR</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="run-a-macro">
+<span id="tangospec-run-macro"></span><h3>Run a macro<a class="headerlink" href="#run-a-macro" title="Permalink to this headline">¶</a></h3>
+<p>To run a macro use the <tt class="xref py py-meth docutils literal"><span class="pre">ExecuteCmd()</span></tt> command. Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">ExecuteCmd</span><span class="p">(</span><span class="s">&quot;wa&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(nothing will be shown because you are not listening to <a class="reference external" href="http://www.certif.com/">SPEC</a> output. See
+<a class="reference internal" href="index.html#tangospec-output"><em>Listen to output</em></a>)</p>
+<p><em>Quick</em> macros can be ran using this synchronous method. Macros that take a
+long time (ex: ascan) will block the client and eventually a timeout exception
+will be raised (default timeout is 3s).</p>
+<p>To run long macros there are two options:</p>
+<div class="section" id="run-macro-asynchronously">
+<h4>Run macro asynchronously<a class="headerlink" href="#run-macro-asynchronously" title="Permalink to this headline">¶</a></h4>
+<p>Tell the <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> server to start executing the macro asynchronously allowing
+you to do other stuff while the macro is running. For this use the command
+<tt class="xref py py-meth docutils literal"><span class="pre">ExecuteCmdA()</span></tt>.</p>
+<p>If you are interested you can monitor if the macro as finished
+(<tt class="xref py py-meth docutils literal"><span class="pre">IsReplyArrived()</span></tt> command) and optionaly
+get the result of it&#8217;s execution (<tt class="xref py py-meth docutils literal"><span class="pre">GetReply()</span></tt>).
+Example</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ascan_id</span> <span class="o">=</span> <span class="n">fourc</span><span class="o">.</span><span class="n">ExecuteCmd</span><span class="p">(</span><span class="s">&quot;ascan phi 0 90 100 1.0&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># do my stuff while the ascan is running...</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="k">while</span> <span class="ow">not</span> <span class="n">fourc</span><span class="o">.</span><span class="n">IsReplyArrived</span><span class="p">(</span><span class="n">ascan_id</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="c"># do more stuff</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascan_result</span> <span class="o">=</span> <span class="n">fourc</span><span class="o">.</span><span class="n">GetReply</span><span class="p">(</span><span class="n">ascan_id</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><tt class="xref py py-meth docutils literal"><span class="pre">GetReply()</span></tt> will block until the command
+finishes.</p>
+</div>
+</div>
+<div class="section" id="run-macro-synchronously">
+<h4>Run macro synchronously<a class="headerlink" href="#run-macro-synchronously" title="Permalink to this headline">¶</a></h4>
+<p>If you want to be blocked until the macro finishes:
+First, configure the DeviceProxy timeout to a long time and then execute
+the macro using the <tt class="xref py py-meth docutils literal"><span class="pre">ExecuteCmd()</span></tt> command:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">fourc</span><span class="o">.</span><span class="n">set_timeout_millis</span><span class="p">(</span><span class="mi">1000</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mi">24</span><span class="o">*</span><span class="mi">7</span><span class="p">)</span> <span class="c"># a week</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ascan_result</span> <span class="o">=</span> <span class="n">fourc</span><span class="o">.</span><span class="n">ExecuteCmd</span><span class="p">(</span><span class="s">&quot;ascan phi 0 90 100 1.0&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Just make sure the ascan takes less than a week ;-)</p>
+</div>
+</div>
+<div class="section" id="move-a-motor">
+<span id="tangospec-move-motor"></span><h3>Move a motor<a class="headerlink" href="#move-a-motor" title="Permalink to this headline">¶</a></h3>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">write Move a motor chapter</p>
+</div>
+</div>
+<div class="section" id="listen-to-output">
+<span id="tangospec-output"></span><h3>Listen to output<a class="headerlink" href="#listen-to-output" title="Permalink to this headline">¶</a></h3>
+<div class="admonition-todo admonition" id="index-1">
+<p class="first admonition-title">Todo</p>
+<p class="last">write list to output chapter</p>
+</div>
+</div>
+</div>
+<span id="document-api"></span><div class="section" id="module-TangoSpec">
+<span id="tangospec-api"></span><h2>TangoSpec API<a class="headerlink" href="#module-TangoSpec" title="Permalink to this headline">¶</a></h2>
+<p>A <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> device server which provides a <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> interface to <a class="reference external" href="http://www.certif.com/">SPEC</a>.</p>
+<dl class="function">
+<dt id="TangoSpec.run">
+<tt class="descclassname">TangoSpec.</tt><tt class="descname">run</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the Spec device server</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="TangoSpec.Spec">
+<em class="property">class </em><tt class="descclassname">TangoSpec.</tt><tt class="descname">Spec</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">PyTango.server.Device</span></tt></p>
+<p>A <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> device server for <a class="reference external" href="http://www.certif.com/">SPEC</a> based on SpecClient.</p>
+<dl class="attribute">
+<dt id="TangoSpec.Spec.SpecMotorList">
+<tt class="descname">SpecMotorList</tt><a class="headerlink" href="#TangoSpec.Spec.SpecMotorList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attribute containning the list of all <a class="reference external" href="http://www.certif.com/">SPEC</a> motors</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="TangoSpec.Spec.SpecCounterList">
+<tt class="descname">SpecCounterList</tt><a class="headerlink" href="#TangoSpec.Spec.SpecCounterList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attribute containning the list of all <a class="reference external" href="http://www.certif.com/">SPEC</a> counters</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="TangoSpec.Spec.MotorList">
+<tt class="descname">MotorList</tt><a class="headerlink" href="#TangoSpec.Spec.MotorList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attribute containning the list of <a class="reference external" href="http://www.certif.com/">SPEC</a> motors exported to <a class="reference external" href="http://www.tango-controls.org/">TANGO</a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="TangoSpec.Spec.CounterList">
+<tt class="descname">CounterList</tt><a class="headerlink" href="#TangoSpec.Spec.CounterList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attribute containning the list of <a class="reference external" href="http://www.certif.com/">SPEC</a> counters exported to <a class="reference external" href="http://www.tango-controls.org/">TANGO</a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="TangoSpec.Spec.VariableList">
+<tt class="descname">VariableList</tt><a class="headerlink" href="#TangoSpec.Spec.VariableList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attribute containning the list of <a class="reference external" href="http://www.certif.com/">SPEC</a> variables exported to <a class="reference external" href="http://www.tango-controls.org/">TANGO</a></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="TangoSpec.Spec.Output">
+<tt class="descname">Output</tt><a class="headerlink" href="#TangoSpec.Spec.Output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attribute which reports <a class="reference external" href="http://www.certif.com/">SPEC</a> console output (output/tty variable)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.ExecuteCmd">
+<tt class="descname">ExecuteCmd</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.ExecuteCmd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a <a class="reference external" href="http://www.certif.com/">SPEC</a> command synchronously.
+Use <a class="reference internal" href="index.html#TangoSpec.Spec.ExecuteCmdA" title="TangoSpec.Spec.ExecuteCmdA"><tt class="xref py py-meth docutils literal"><span class="pre">ExecuteCmdA()</span></tt></a> instead if you intend to run
+commands that take some time.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; the command to be executed (ex: <tt class="docutils literal"><span class="pre">&quot;wa&quot;</span></tt> )</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.ExecuteCmdA">
+<tt class="descname">ExecuteCmdA</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.ExecuteCmdA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a <a class="reference external" href="http://www.certif.com/">SPEC</a> command asynchronously.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; the command to be executed (ex: <tt class="docutils literal"><span class="pre">&quot;ascan</span> <span class="pre">energy</span> <span class="pre">0.1</span> <span class="pre">10</span> <span class="pre">20</span> <span class="pre">0.1&quot;</span></tt> )</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an identifier for the command.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.GetReply">
+<tt class="descname">GetReply</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.GetReply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the reply of the <a class="reference external" href="http://www.certif.com/">SPEC</a> command given by the cmd_id, previously
+requested through <a class="reference internal" href="index.html#TangoSpec.Spec.ExecuteCmdA" title="TangoSpec.Spec.ExecuteCmdA"><tt class="xref py py-meth docutils literal"><span class="pre">ExecuteCmdA()</span></tt></a>.
+It waits if the command is not finished</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cmd_id</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; command identifier</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the reply for the requested command</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.IsReplyArrived">
+<tt class="descname">IsReplyArrived</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.IsReplyArrived" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines if a command executed previously with the given cmd_id is
+finished.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>cmd_id</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; command identifier</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if the command response as arrived or False otherwise</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.AddVariable">
+<tt class="descname">AddVariable</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.AddVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export a <a class="reference external" href="http://www.certif.com/">SPEC</a> variable to Tango by adding a new attribute to this
+device with the same name as the variable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>variable_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; <a class="reference external" href="http://www.certif.com/">SPEC</a> variable name to be exported as a <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> attribute</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Throws PyTango.DevFailed:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">If the variable is already exposed in this <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> DS.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.RemoveVariable">
+<tt class="descname">RemoveVariable</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.RemoveVariable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unexposes the given variable from this <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> DS.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>variable_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; the name of the <a class="reference external" href="http://www.certif.com/">SPEC</a> variable to be removed</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Throws PyTango.DevFailed:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body">If the variable is not exposed in this <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> DS</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.AddMotor">
+<tt class="descname">AddMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.AddMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new SpecMotor to this DS.</p>
+<p><em>motor_info</em> must be a sequence of strings with the following options:</p>
+<div class="highlight-python"><pre>spec_motor_name [, tango_device_name [, tango_alias_name]]</pre>
+</div>
+<p>Examples:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">spec</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/spec/fourc&quot;</span><span class="p">)</span>
+<span class="n">spec</span><span class="o">.</span><span class="n">AddMotor</span><span class="p">((</span><span class="s">&quot;th&quot;</span><span class="p">,))</span>
+<span class="n">spec</span><span class="o">.</span><span class="n">AddMotor</span><span class="p">((</span><span class="s">&quot;tth&quot;</span><span class="p">,</span> <span class="s">&quot;ID00/fourc/tth&quot;</span><span class="p">,</span> <span class="s">&quot;theta2&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>spec_motor_name</strong> &#8211; name of the spec motor to export to <a class="reference external" href="http://www.tango-controls.org/">TANGO</a></li>
+<li><strong>tango_device_name</strong> &#8211; optional tango name to give to the new <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> motor device
+[default: &lt;tangospec_domain&gt;/&lt;tangospec_family&gt;/&lt;spec_motor_name&gt;]</li>
+<li><strong>tango_alias_name</strong> &#8211; optional alias to give to the new tango motor device
+[default: &lt;spec_motor_name&gt;]. Note: if the alias
+exists it will <strong>not</strong> be overwritten.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Throws PyTango.DevFailed:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last">If <a class="reference external" href="http://www.certif.com/">SPEC</a> motor does not exist or if motor is already exported</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.RemoveMotor">
+<tt class="descname">RemoveMotor</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.RemoveMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the given SpecMotor from this DS.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>motor_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; <a class="reference external" href="http://www.certif.com/">SPEC</a> motor name to be removed</td>
+</tr>
+</tbody>
+</table>
+<p>Examples:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">spec</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/spec/fourc&quot;</span><span class="p">)</span>
+<span class="n">spec</span><span class="o">.</span><span class="n">RemoveMotor</span><span class="p">(</span><span class="s">&quot;th&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.AddCounter">
+<tt class="descname">AddCounter</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.AddCounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new SpecCounter to this DS.</p>
+<p><em>counter_info</em> must be a sequence of strings with the following options:</p>
+<div class="highlight-python"><pre>spec_counter_name [, tango_device_name [, tango_alias_name]]</pre>
+</div>
+<p>Examples:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">spec</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/spec/fourc&quot;</span><span class="p">)</span>
+<span class="n">spec</span><span class="o">.</span><span class="n">AddCounter</span><span class="p">((</span><span class="s">&quot;sec&quot;</span><span class="p">,))</span>
+<span class="n">spec</span><span class="o">.</span><span class="n">AddCounter</span><span class="p">((</span><span class="s">&quot;det&quot;</span><span class="p">,</span> <span class="s">&quot;ID00/fourc/detector&quot;</span><span class="p">,</span> <span class="s">&quot;detector&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>spec_counter_name</strong> &#8211; name of the spec counter to export to <a class="reference external" href="http://www.tango-controls.org/">TANGO</a></li>
+<li><strong>tango_device_name</strong> &#8211; optional tango name to give to the new <a class="reference external" href="http://www.tango-controls.org/">TANGO</a> counter device
+[default: &lt;tangospec_domain&gt;/&lt;tangospec_family&gt;/&lt;spec_counter_name&gt;]</li>
+<li><strong>tango_alias_name</strong> &#8211; optional alias to give to the new tango counter device
+[default: &lt;spec_counter_name&gt;]. Note: if the alias
+exists it will <strong>not</strong> be overwritten.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Throws PyTango.DevFailed:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"><p class="first last">If <a class="reference external" href="http://www.certif.com/">SPEC</a> counter does not exist or if counter is already exported</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.RemoveCounter">
+<tt class="descname">RemoveCounter</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.RemoveCounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the given SpecCounter from this DS.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>counter_name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; <a class="reference external" href="http://www.certif.com/">SPEC</a> counter name to be removed</td>
+</tr>
+</tbody>
+</table>
+<p>Examples:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">spec</span> <span class="o">=</span> <span class="n">PyTango</span><span class="o">.</span><span class="n">DeviceProxy</span><span class="p">(</span><span class="s">&quot;ID00/spec/fourc&quot;</span><span class="p">)</span>
+<span class="n">spec</span><span class="o">.</span><span class="n">RemoveCounter</span><span class="p">(</span><span class="s">&quot;th&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="TangoSpec.Spec.Reconstruct">
+<tt class="descname">Reconstruct</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#TangoSpec.Spec.Reconstruct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exposes to Tango all counters and motors that where found
+in SPEC.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="TangoSpec.SpecMotor">
+<em class="property">class </em><tt class="descclassname">TangoSpec.</tt><tt class="descname">SpecMotor</tt><big>(</big><em>cl</em>, <em>name</em><big>)</big><a class="headerlink" href="#TangoSpec.SpecMotor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">PyTango.server.Device</span></tt></p>
+<p>A TANGO SPEC motor device based on SpecClient.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="TangoSpec.SpecCounter">
+<em class="property">class </em><tt class="descclassname">TangoSpec.</tt><tt class="descname">SpecCounter</tt><big>(</big><em>cl</em>, <em>name</em><big>)</big><a class="headerlink" href="#TangoSpec.SpecCounter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">PyTango.server.Device</span></tt></p>
+<p>A TANGO SPEC counter device based on SpecClient.</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+
+
+        </div>
+        <div class="span3"><h4 class="sidebar-box-heading">Navigation</h4>
+<div class="well sidebar-box">
+    <ul class="nav nav-list">
+        <li><a href="index.html#document-index">Documentation Home</a></li>
+        
+        
+    </ul>
+</div><h4 class="sidebar-box-heading">Versions</h4>
+<div class="well sidebar-box">
+    <ul class="nav nav-list">
+        <script src="_static/js/docversions.js"></script>
+        <script type="text/javascript">
+            insert_version_links();
+        </script>
+    </ul>
+</div>
+        </div>
+    </div>
+    <div class="well footer">
+        <small>
+            &copy; Copyright 2014, European Synchrotron Radiation Facility.
+        </small>
+    </div>
+</body>
+</html>
