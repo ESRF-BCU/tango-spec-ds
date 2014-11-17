@@ -6,10 +6,10 @@ Getting started
 ================
 
 TangoSpec consists of a TANGO_ device server called *TangoSpec*. The device
-server should contain at least one device of TANGO_ class *TangoSpec*.
+server should contain at least one device of TANGO_ class *Spec*.
 
 All other devices (*SpecMotor*, *SpecCounter*) can be created
-dynamically on demand by executing commands on the *TangoSpec* device.
+dynamically on demand by executing commands on the *Spec* device.
 
 This chapter describes how to install, setup, run and customize a new *TangoSpec*
 server.
@@ -18,6 +18,13 @@ server.
 
 Download & install
 ------------------
+
+Dependencies
+~~~~~~~~~~~~
+
+TangoSpec TANGO_ device server depends on PyTango_ and 
+`SpecClient_gevent <https://github.com/mxcube/specclient/>`_ packages.
+
 
 ESRF Production environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,7 +54,7 @@ get a dialog like the one below:
 The *Server* field should be ``TangoSpec/<instance>`` where instance is a name at
 your choice (usually the name of the spec session, ex: TangoSpec/fourc).
 
-The *Class* field should be ``TangoSpec``.
+The *Class* field should be ``Spec``.
 
 The *Devices* field should be the TANGO_ device name according to the convention
 in place at the institute (ex: ID00/spec/fourc).
@@ -97,9 +104,10 @@ Spec session reconstruction
 
 It is possible to synchronize the list of TANGO spec motors and counters with the list
 of motors and counters provided by Spec.
-To do this, simply execute the command ``Reconstruct`` provided by the Spec TANGO device
-server. After executing this command all motors and counters exported by Spec will be
-present as TANGO devices. Example::
+To do this, simply execute the :meth:`~TangoSpec.Spec.Reconstruct` command provided 
+by the Spec TANGO_ device.
+After executing this command all motors and counters exported by SPEC_ will be
+present as TANGO_ devices. Example::
 
     >>> import PyTango
     >>> fourc = PyTango.DeviceProxy("ID00/SPEC/fourc")
@@ -130,14 +138,13 @@ Expose a motor
 --------------
 
 Each motor in SPEC_ can be represented as a TANGO_ device of TANGO_ class
-*SpecMotor*.
+:class:`~TangoSpec.SpecMotor`.
 
 When you setup a new *TangoSpec* device server it will not export any of the
-SPEC_ motors (unless : ref:`auto discovery <tangospec_auto_discovery>`.
+SPEC_ motors unless :ref:`auto discovery <tangospec_auto_discovery>` is enabled.
 
-You have to specify which SPEC_ motors you want to be exported to SPEC.
 To export a SPEC_ motor to spec just execute the TANGO_ command
-:meth:`~TangoSpec.TangoSpec.AddMotor` on the *TangoSpec* device.
+:meth:`~TangoSpec.Spec.AddMotor` on the *Spec* device.
 This can be done in Jive or from a python shell::
 
     >>> import PyTango
@@ -167,14 +174,13 @@ Expose a counter
 ----------------
 
 Each counter in SPEC_ can be represented as a TANGO_ device of TANGO_ class
-*SpecCounter*.
+:class:`~TangoSpec.SpecCounter`.
 
 When you setup a new *TangoSpec* device server it will not export any of the
-SPEC_ counters.
+SPEC_ counters unless :ref:`auto discovery <tangospec_auto_discovery>` is enabled.
 
-You have to specify which SPEC_ counters you want to be exported to SPEC.
 To export a SPEC_ counter to spec just execute the TANGO_ command
-:meth:`~TangoSpec.TangoSpec.AddCounter` on the *TangoSpec* device.
+:meth:`~TangoSpec.Spec.AddCounter` on the *TangoSpec* device.
 This can be done in Jive or from a python shell::
 
     >>> import PyTango
@@ -211,7 +217,7 @@ SPEC_ variables can be exported to TANGO_ as dynamic attributes in the *TangoSpe
 device.
 
 To expose an existing SPEC_ variable to TANGO_ just execute the TANGO_ command
- :meth:`~TangoSpec.TangoSpec.AddVariable` on the *TangoSpec* device.
+:meth:`~TangoSpec.Spec.AddVariable` on the *TangoSpec* device.
 
 As a result, a new attribute with the same name as the SPEC_ variable name will
 be created in the *TangoSpec* device.
@@ -223,6 +229,13 @@ Example how to expose a SPEC_ variable called *FF_DIR*::
 
     >>> # expose a variable called 'FF_DIR'
     >>> fourc.AddVariable("FF_DIR")
+
+.. note::
+
+    Spec sessions can contain literally thousands of variables. For this reason
+    neither the :ref:`auto discovery <tangospec_auto_discovery>` nor the 
+    :meth:`~TangoSpec.Spec.Reconstruct` command will expose spec variables
+    automatically to TANGO_
 
 .. _tangospec_readwrite_variable:
 
@@ -259,7 +272,7 @@ performed. Example::
 Run a macro
 -----------
 
-To run a macro use the :meth:`~TangoSpec.TangoSpec.ExecuteCmd` command. Example::
+To run a macro use the :meth:`~TangoSpec.Spec.ExecuteCmd` command. Example::
 
    >>> fourc.ExecuteCmd("wa")
 
@@ -277,12 +290,12 @@ Run macro asynchronously
 
 Tell the TANGO_ server to start executing the macro asynchronously allowing
 you to do other stuff while the macro is running. For this use the command
-:meth:`~TangoSpec.TangoSpec.ExecuteCmdA`.
+:meth:`~TangoSpec.Spec.ExecuteCmdA`.
 
 If you are interested you can monitor if the macro as finished
-(:meth:`~TangoSpec.TangoSpec.IsReplyArrived` command) and optionaly
-get the result of it's execution (:meth:`~TangoSpec.TangoSpec.GetReply`).
-Example ::
+(:meth:`~TangoSpec.Spec.IsReplyArrived` command) and optionaly
+get the result of it's execution (:meth:`~TangoSpec.Spec.GetReply`).
+Example::
 
    >>> ascan_id = fourc.ExecuteCmd("ascan phi 0 90 100 1.0")
    >>> # do my stuff while the ascan is running...
@@ -294,7 +307,7 @@ Example ::
 
 .. note::
 
-     :meth:`~TangoSpec.TangoSpec.GetReply` will block until the command
+     :meth:`~TangoSpec.Spec.GetReply` will block until the command
      finishes.
 
 Run macro synchronously
@@ -302,7 +315,7 @@ Run macro synchronously
 
 If you want to be blocked until the macro finishes:
 First, configure the DeviceProxy timeout to a long time and then execute
-the macro using the :meth:`~TangoSpec.TangoSpec.ExecuteCmd` command::
+the macro using the :meth:`~TangoSpec.Spec.ExecuteCmd` command::
 
     >>> fourc.set_timeout_millis(1000*60*60*24*7) # a week
     >>> ascan_result = fourc.ExecuteCmd("ascan phi 0 90 100 1.0")
@@ -316,10 +329,17 @@ Move a motor
 
 .. todo:: write Move a motor chapter
 
+.. _tangospec_count:
+
+Count
+-----
+
+.. todo:: write Count chapter
+
 .. _tangospec_output:
+
 
 Listen to output
 ----------------
-
 
 .. todo:: write list to output chapter

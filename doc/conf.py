@@ -265,12 +265,13 @@ todo_include_todos = True
 
 rst_epilog = """\
 .. _TANGO: http://www.tango-controls.org/
+.. _PyTango: http://www.tinyurl.com/PyTango/
 .. _SPEC: http://www.certif.com/
+.. _SpecClientGevent: https://github.com/mxcube/specclient/
 .. _Python: http://python.org/
 .. _IPython: http://ipython.org/
 .. _numpy: http://www.numpy.org/
 .. _gevent: http://www.gevent.org/
 .. _boost-python: http://www.boost.org/libs/python/
 .. _PyPi: https://pypi.python.org/pypi/PyTango/
-
 """

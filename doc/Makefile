@@ -154,4 +154,4 @@ doctest:
 
 readme_md: singlehtml
 	$(SPHINXBUILD) -b singlehtml -D html_add_permalinks= $(ALLSPHINXOPTS)  $(BUILDDIR)/singlehtml
-	pandoc $(BUILDDIR)/singlehtml/index.html -f html -t markdown -S -s -o ../README.md
+	pandoc $(BUILDDIR)/singlehtml/index.html -f html -t markdown -S -s -o README.md

@@ -14,7 +14,7 @@ Contents:
    :maxdepth: 2
 
    Getting started <getting_started>
-   API <api>
+   Tango API <api>
 
 
 Indices and tables

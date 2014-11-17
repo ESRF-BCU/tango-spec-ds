@@ -1,4 +1,4 @@
-% TangoSpec 1.0 documentation
+% TangoSpec 1.1 documentation
 % 
 % 
 
@@ -7,7 +7,7 @@
 -   [Home](index.html#document-index)
 -   [Getting started](index.html#document-getting_started)
 -   [API](index.html#document-api)
--   [Source](https://gitlab.esrf.fr/andy.gotz/tango-spec/)
+-   [Source](http://gitlab.esrf.fr/andy.gotz/tango-spec/)
 
 Welcome to TangoSpec’s documentation!
 =====================================
@@ -23,15 +23,21 @@ Getting started
 
 TangoSpec consists of a [TANGO](http://www.tango-controls.org/) device
 server called *TangoSpec*. The device server should contain at least one
-device of [TANGO](http://www.tango-controls.org/) class *TangoSpec*.
+device of [TANGO](http://www.tango-controls.org/) class *Spec*.
 
 All other devices (*SpecMotor*, *SpecCounter*) can be created
-dynamically on demand by executing commands on the *TangoSpec* device.
+dynamically on demand by executing commands on the *Spec* device.
 
 This chapter describes how to install, setup, run and customize a new
 *TangoSpec* server.
 
 ### Download & install
+
+#### Dependencies
+
+TangoSpec [TANGO](http://www.tango-controls.org/) device server depends
+on [PyTango](http://www.tinyurl.com/PyTango/) and
+[SpecClient\_gevent](https://github.com/mxcube/specclient/) packages.
 
 #### ESRF Production environment
 
@@ -55,7 +61,7 @@ The *Server* field should be `TangoSpec/<instance>`{.docutils .literal}
 where instance is a name at your choice (usually the name of the spec
 session, ex: TangoSpec/fourc).
 
-The *Class* field should be `TangoSpec`{.docutils .literal}.
+The *Class* field should be `Spec`{.docutils .literal}.
 
 The *Devices* field should be the
 [TANGO](http://www.tango-controls.org/) device name according to the
@@ -109,9 +115,12 @@ device to allow changes to take place.
 
 It is possible to synchronize the list of TANGO spec motors and counters
 with the list of motors and counters provided by Spec. To do this,
-simply execute the command `Reconstruct`{.docutils .literal} provided by
-the Spec TANGO device server. After executing this command all motors
-and counters exported by Spec will be present as TANGO devices. Example:
+simply execute the [`Reconstruct()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.Reconstruct "TangoSpec.Spec.Reconstruct")
+command provided by the Spec [TANGO](http://www.tango-controls.org/)
+device. After executing this command all motors and counters exported by
+[SPEC](http://www.certif.com/) will be present as
+[TANGO](http://www.tango-controls.org/) devices. Example:
 
     >>> import PyTango
     >>> fourc = PyTango.DeviceProxy("ID00/SPEC/fourc")
@@ -140,17 +149,19 @@ and counters exported by Spec will be present as TANGO devices. Example:
 
 Each motor in [SPEC](http://www.certif.com/) can be represented as a
 [TANGO](http://www.tango-controls.org/) device of
-[TANGO](http://www.tango-controls.org/) class *SpecMotor*.
+[TANGO](http://www.tango-controls.org/) class [`SpecMotor`{.xref .py
+.py-class .docutils
+.literal}](index.html#TangoSpec.SpecMotor "TangoSpec.SpecMotor").
 
 When you setup a new *TangoSpec* device server it will not export any of
-the [SPEC](http://www.certif.com/) motors (unless : ref:auto discovery
-\<tangospec\_auto\_discovery\>.
+the [SPEC](http://www.certif.com/) motors unless [*auto
+discovery*](index.html#tangospec-auto-discovery) is enabled.
 
-You have to specify which [SPEC](http://www.certif.com/) motors you want
-to be exported to SPEC. To export a [SPEC](http://www.certif.com/) motor
-to spec just execute the [TANGO](http://www.tango-controls.org/) command
-`AddMotor()`{.xref .py .py-meth .docutils .literal} on the *TangoSpec*
-device. This can be done in Jive or from a python shell:
+To export a [SPEC](http://www.certif.com/) motor to spec just execute
+the [TANGO](http://www.tango-controls.org/) command [`AddMotor()`{.xref
+.py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.AddMotor "TangoSpec.Spec.AddMotor")
+on the *Spec* device. This can be done in Jive or from a python shell:
 
     >>> import PyTango
     >>> fourc = PyTango.DeviceProxy("ID00/SPEC/fourc")
@@ -177,16 +188,20 @@ device. This can be done in Jive or from a python shell:
 
 Each counter in [SPEC](http://www.certif.com/) can be represented as a
 [TANGO](http://www.tango-controls.org/) device of
-[TANGO](http://www.tango-controls.org/) class *SpecCounter*.
+[TANGO](http://www.tango-controls.org/) class [`SpecCounter`{.xref .py
+.py-class .docutils
+.literal}](index.html#TangoSpec.SpecCounter "TangoSpec.SpecCounter").
 
 When you setup a new *TangoSpec* device server it will not export any of
-the [SPEC](http://www.certif.com/) counters.
+the [SPEC](http://www.certif.com/) counters unless [*auto
+discovery*](index.html#tangospec-auto-discovery) is enabled.
 
-You have to specify which [SPEC](http://www.certif.com/) counters you
-want to be exported to SPEC. To export a [SPEC](http://www.certif.com/)
-counter to spec just execute the [TANGO](http://www.tango-controls.org/)
-command `AddCounter()`{.xref .py .py-meth .docutils .literal} on the
-*TangoSpec* device. This can be done in Jive or from a python shell:
+To export a [SPEC](http://www.certif.com/) counter to spec just execute
+the [TANGO](http://www.tango-controls.org/) command
+[`AddCounter()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.AddCounter "TangoSpec.Spec.AddCounter")
+on the *TangoSpec* device. This can be done in Jive or from a python
+shell:
 
     >>> import PyTango
     >>> fourc = PyTango.DeviceProxy("ID00/SPEC/fourc")
@@ -219,9 +234,12 @@ command `AddCounter()`{.xref .py .py-meth .docutils .literal} on the
 [TANGO](http://www.tango-controls.org/) as dynamic attributes in the
 *TangoSpec* device.
 
-To expose an existing [SPEC](http://www.certif.com/) variable to [TANGO](http://www.tango-controls.org/) just execute the [TANGO](http://www.tango-controls.org/) command
-:   `AddVariable()`{.xref .py .py-meth .docutils .literal} on the
-    *TangoSpec* device.
+To expose an existing [SPEC](http://www.certif.com/) variable to
+[TANGO](http://www.tango-controls.org/) just execute the
+[TANGO](http://www.tango-controls.org/) command [`AddVariable()`{.xref
+.py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.AddVariable "TangoSpec.Spec.AddVariable")
+on the *TangoSpec* device.
 
 As a result, a new attribute with the same name as the
 [SPEC](http://www.certif.com/) variable name will be created in the
@@ -235,6 +253,16 @@ Example how to expose a [SPEC](http://www.certif.com/) variable called
 
     >>> # expose a variable called 'FF_DIR'
     >>> fourc.AddVariable("FF_DIR")
+
+Note
+
+Spec sessions can contain literally thousands of variables. For this
+reason neither the [*auto
+discovery*](index.html#tangospec-auto-discovery) nor the
+[`Reconstruct()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.Reconstruct "TangoSpec.Spec.Reconstruct")
+command will expose spec variables automatically to
+[TANGO](http://www.tango-controls.org/)
 
 ### Read/Write variables
 
@@ -273,8 +301,9 @@ opposite operation needs to be performed. Example:
 
 ### Run a macro
 
-To run a macro use the `ExecuteCmd()`{.xref .py .py-meth .docutils
-.literal} command. Example:
+To run a macro use the [`ExecuteCmd()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.ExecuteCmd "TangoSpec.Spec.ExecuteCmd")
+command. Example:
 
     >>> fourc.ExecuteCmd("wa")
 
@@ -292,13 +321,17 @@ To run long macros there are two options:
 
 Tell the [TANGO](http://www.tango-controls.org/) server to start
 executing the macro asynchronously allowing you to do other stuff while
-the macro is running. For this use the command `ExecuteCmdA()`{.xref .py
-.py-meth .docutils .literal}.
+the macro is running. For this use the command [`ExecuteCmdA()`{.xref
+.py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.ExecuteCmdA "TangoSpec.Spec.ExecuteCmdA").
 
 If you are interested you can monitor if the macro as finished
-(`IsReplyArrived()`{.xref .py .py-meth .docutils .literal} command) and
-optionaly get the result of it’s execution (`GetReply()`{.xref .py
-.py-meth .docutils .literal}). Example
+([`IsReplyArrived()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.IsReplyArrived "TangoSpec.Spec.IsReplyArrived")
+command) and optionaly get the result of it’s execution
+([`GetReply()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.GetReply "TangoSpec.Spec.GetReply")).
+Example:
 
     >>> ascan_id = fourc.ExecuteCmd("ascan phi 0 90 100 1.0")
     >>> # do my stuff while the ascan is running...
@@ -310,14 +343,17 @@ optionaly get the result of it’s execution (`GetReply()`{.xref .py
 
 Note
 
-`GetReply()`{.xref .py .py-meth .docutils .literal} will block until the
-command finishes.
+[`GetReply()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.GetReply "TangoSpec.Spec.GetReply")
+will block until the command finishes.
 
 #### Run macro synchronously
 
 If you want to be blocked until the macro finishes: First, configure the
 DeviceProxy timeout to a long time and then execute the macro using the
-`ExecuteCmd()`{.xref .py .py-meth .docutils .literal} command:
+[`ExecuteCmd()`{.xref .py .py-meth .docutils
+.literal}](index.html#TangoSpec.Spec.ExecuteCmd "TangoSpec.Spec.ExecuteCmd")
+command:
 
     >>> fourc.set_timeout_millis(1000*60*60*24*7) # a week
     >>> ascan_result = fourc.ExecuteCmd("ascan phi 0 90 100 1.0")
@@ -329,6 +365,12 @@ Just make sure the ascan takes less than a week ;-)
 Todo
 
 write Move a motor chapter
+
+### Count
+
+Todo
+
+write Count chapter
 
 ### Listen to output
 
