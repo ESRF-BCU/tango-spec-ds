@@ -161,14 +161,28 @@ class SpecCounter(Device):
 
     @command(dtype_in=float, doc_in="count time (s)")
     def Count(self, count_time):
+        """
+        Count by the specified time (s)
+
+        :param count_time: count time (s)
+        """
         self.spec_counter.count(count_time)
 
     @command
     def Stop(self):
+        """
+        Stop counting
+        """
         self.spec_counter.stop()
 
     @command(dtype_in=bool, doc_in="enabled (True/False)")
     def setEnabled(self, enabled):
+        """
+        Enable/Disable counter
+
+        :param enabled: enable or disable
+        :type enabled: bool
+        """
         self.spec_counter.setEnabled(enabled)
 
 def main():

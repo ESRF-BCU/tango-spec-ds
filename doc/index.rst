@@ -8,19 +8,9 @@ Welcome to TangoSpec's documentation!
 
 TangoSpec is a TANGO_ device server which provides a TANGO_ interface to SPEC_.
 
-Contents:
-
 .. toctree::
    :maxdepth: 2
 
    Getting started <getting_started>
-   Tango API <api>
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   API <api>
 

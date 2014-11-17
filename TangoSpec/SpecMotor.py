@@ -246,26 +246,50 @@ class SpecMotor(Device):
 
     @command
     def Stop(self):
+        """
+        Stop the motor (allowing deceleration time)
+        """
         self.__spec_motor.stop()
 
     @command
     def Abort(self):
+        """
+        Stop the motor immediately
+        """
         self.__spec_motor.stop()
 
     @command(dtype_in=float)
     def Move(self, abs_position):
+        """
+        Move the motor to the given absolute position
+
+        :param abs_position: absolute destination position
+        :type abs_position: float
+        """
         self.__spec_motor.move(abs_position)
 
     @command(dtype_in=float)
     def MoveRelative(self, rel_position):
+        """
+        Move the motor by the given displacement.
+
+        :param rel_position: displacement
+        :type rel_position: float
+        """        
         self.__spec_motor.moveRelative(rel_position)
 
     @command
     def StepUp(self):
+        """
+        Move the motor up by the currently configured step size
+        """
         self.__spec_motor.moveRelative(self.__step_size)
 
     @command
     def StepDown(self):
+        """
+        Move the motor down by the currently configured step size
+        """        
         self.__spec_motor.moveRelative(-self.__step_size)
 
 

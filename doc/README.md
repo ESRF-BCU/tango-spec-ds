@@ -16,8 +16,6 @@ TangoSpec is a [TANGO](http://www.tango-controls.org/) device server
 which provides a [TANGO](http://www.tango-controls.org/) interface to
 [SPEC](http://www.certif.com/).
 
-Contents:
-
 Getting started
 ---------------
 
@@ -42,7 +40,7 @@ on [PyTango](http://www.tinyurl.com/PyTango/) and
 #### ESRF Production environment
 
 For production environment, use the code from the bliss installer
-package called *TangoSpec*.
+package called *TangoSpec* (in Control/Tango/Server).
 
 #### Development environment
 
@@ -395,29 +393,50 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
     A [TANGO](http://www.tango-controls.org/) device server for
     [SPEC](http://www.certif.com/) based on SpecClient.
 
+     `Spec`{.descname}
+    :   [TANGO](http://www.tango-controls.org/) device property
+        containing spec session name (examples:
+        `localhost:spec`{.docutils .literal}, `mach101:fourc`{.docutils
+        .literal})
+
+     `AutoDiscovery`{.descname}
+    :   [TANGO](http://www.tango-controls.org/) device property (bool)
+        describing if auto discovery is enabled or disabled (see: [*Auto
+        discovery*](index.html#tangospec-auto-discovery)). Default value
+        is `False`{.docutils .literal}.
+
+     `OutputBufferMaxLength`{.descname}
+    :   [TANGO](http://www.tango-controls.org/) device property (int)
+        describing the output history buffer maximum length (in number
+        of output lines). Default is 1000 lines.
+
      `SpecMotorList`{.descname}
-    :   Attribute containning the list of all
-        [SPEC](http://www.certif.com/) motors
+    :   [TANGO](http://www.tango-controls.org/) attribute containning
+        the list of all [SPEC](http://www.certif.com/) motors
 
      `SpecCounterList`{.descname}
-    :   Attribute containning the list of all
-        [SPEC](http://www.certif.com/) counters
+    :   [TANGO](http://www.tango-controls.org/) attribute containning
+        the list of all [SPEC](http://www.certif.com/) counters
 
      `MotorList`{.descname}
-    :   Attribute containning the list of [SPEC](http://www.certif.com/)
-        motors exported to [TANGO](http://www.tango-controls.org/)
+    :   [TANGO](http://www.tango-controls.org/) attribute containning
+        the list of [SPEC](http://www.certif.com/) motors exported to
+        [TANGO](http://www.tango-controls.org/)
 
      `CounterList`{.descname}
-    :   Attribute containning the list of [SPEC](http://www.certif.com/)
-        counters exported to [TANGO](http://www.tango-controls.org/)
+    :   [TANGO](http://www.tango-controls.org/) attribute containning
+        the list of [SPEC](http://www.certif.com/) counters exported to
+        [TANGO](http://www.tango-controls.org/)
 
      `VariableList`{.descname}
-    :   Attribute containning the list of [SPEC](http://www.certif.com/)
-        variables exported to [TANGO](http://www.tango-controls.org/)
+    :   [TANGO](http://www.tango-controls.org/) attribute containning
+        the list of [SPEC](http://www.certif.com/) variables exported to
+        [TANGO](http://www.tango-controls.org/)
 
      `Output`{.descname}
-    :   Attribute which reports [SPEC](http://www.certif.com/) console
-        output (output/tty variable)
+    :   [TANGO](http://www.tango-controls.org/) attribute which reports
+        [SPEC](http://www.certif.com/) console output (output/tty
+        variable)
 
      `ExecuteCmd`{.descname}(*\*args*, *\*\*kwargs*)
     :   Execute a [SPEC](http://www.certif.com/) command synchronously.
@@ -629,23 +648,188 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
     A TANGO SPEC motor device based on SpecClient.
 
+     `SpecMotor`{.descname}
+    :   [TANGO](http://www.tango-controls.org/) device property
+        containing the spec motor mnemonic (examples: `th`{.docutils
+        .literal}, `localhost:spec::chi`{.docutils .literal},
+        `mach101:fourc::phi`{.docutils .literal}). The full name is only
+        required if running the TangoSpec DS without a Spec manager
+        device.
+
+     `Position`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor user
+    position. Setting a value on this attribute will move the motor to
+    the specified value.
+
+     `State`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor
+    state.
+
+    -   INIT - motor initialization phase (startup or through Init
+        command)
+    -   ON - motor is enabled and stopped.
+    -   MOVING - motor is moving
+    -   ALARM - motor limit switch is active or position in the alarm
+        range
+    -   FAULT - connection to [SPEC](http://www.certif.com/) motor lost
+
+     `Status`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor
+    status.
+
+     `DialPosition`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor dial
+    position.
+
+     `Sign`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor
+    sign.
+
+     `Offset`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor
+    offset.
+
+     `AcceletationTime`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor
+    acceleration time (s).
+
+     `Backlash`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor
+    backlash.
+
+     `StepSize`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the current
+    step size (used by the StepDown and StepUp commands).
+
+     `Limit_Switches`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the motor
+    limit switches (home, upper, lower).
+
+     `Init`{.descname}()
+    :   
+
+    Initializes the [TANGO](http://www.tango-controls.org/) motor
+
+     `Stop`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Stop the motor (allowing deceleration time)
+
+     `Abort`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Stop the motor immediately
+
+     `Move`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Move the motor to the given absolute position
+
+        Parameters:
+
+        **abs\_position**
+        ([*float*](http://docs.python.org/library/functions.html#float "(in Python v2.7)"))
+        – absolute destination position
+
+     `MoveRelative`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Move the motor by the given displacement.
+
+        Parameters:
+
+        **rel\_position**
+        ([*float*](http://docs.python.org/library/functions.html#float "(in Python v2.7)"))
+        – displacement
+
+     `StepUp`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Move the motor up by the currently configured step size
+
+     `StepDown`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Move the motor down by the currently configured step size
+
  *class*`TangoSpec.`{.descclassname}`SpecCounter`{.descname}(*cl*, *name*)
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
     A TANGO SPEC counter device based on SpecClient.
 
-Indices and tables
-==================
+     `SpecCounter`{.descname}
+    :   [TANGO](http://www.tango-controls.org/) device property
+        containing the spec counter mnemonic (examples: `sec`{.docutils
+        .literal}, `localhost:spec::det`{.docutils .literal},
+        `mach101:fourc::mon`{.docutils .literal}). The full name is only
+        required if running the TangoSpec DS without a Spec manager
+        device.
 
--   [*Index*](genindex.html)
--   [*Module Index*](py-modindex.html)
--   [*Search Page*](search.html)
+     `State`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the counter
+    state.
+
+    -   INIT - counter initialization phase (startup or through Init
+        command)
+    -   ON - counter is enabled and stopped.
+    -   RUNNIG - counter is counting
+    -   ALARM - counter value in the alarm range
+    -   FAULT - connection to [SPEC](http://www.certif.com/) counter
+        lost
+
+     `Status`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the counter
+    status.
+
+     `Value`{.descname}
+    :   
+
+    [TANGO](http://www.tango-controls.org/) attribute for the counter
+    value.
+
+     `Init`{.descname}()
+    :   
+
+    Initializes the [TANGO](http://www.tango-controls.org/) counter
+
+     `Count`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Count by the specified time (s)
+
+        Parameters:
+
+        **count\_time** – count time (s)
+
+     `Stop`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Stop counting
+
+     `setEnabled`{.descname}(*\*args*, *\*\*kwargs*)
+    :   Enable/Disable counter
+
+        Parameters:
+
+        **enabled**
+        ([*bool*](http://docs.python.org/library/functions.html#bool "(in Python v2.7)"))
+        – enable or disable
 
 #### Navigation
 
 -   [Documentation Home](index.html#document-index)
 
 #### Versions
+
+-   [PDF version](TangoSpec.pdf)
 
 © Copyright 2014, European Synchrotron Radiation Facility.

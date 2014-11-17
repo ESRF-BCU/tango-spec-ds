@@ -155,3 +155,6 @@ doctest:
 readme_md: singlehtml
 	$(SPHINXBUILD) -b singlehtml -D html_add_permalinks= $(ALLSPHINXOPTS)  $(BUILDDIR)/singlehtml
 	pandoc $(BUILDDIR)/singlehtml/index.html -f html -t markdown -S -s -o README.md
+
+htmlpdf: html latexpdf
+	cp $(BUILDDIR)/latex/*.pdf $(BUILDDIR)/html

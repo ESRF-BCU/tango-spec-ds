@@ -30,7 +30,7 @@ ESRF Production environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For production environment, use the code from the bliss installer package
-called *TangoSpec*.
+called *TangoSpec* (in Control/Tango/Server).
 
 Development environment
 ~~~~~~~~~~~~~~~~~~~~~~~
