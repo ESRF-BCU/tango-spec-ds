@@ -152,9 +152,12 @@ doctest:
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
 
-readme_md: singlehtml
+readme_md: singlehtml latexpdf
 	$(SPHINXBUILD) -b singlehtml -D html_add_permalinks= $(ALLSPHINXOPTS)  $(BUILDDIR)/singlehtml
-	pandoc $(BUILDDIR)/singlehtml/index.html -f html -t markdown -S -s -o README.md
+	pandoc $(BUILDDIR)/singlehtml/index.html -f html -t markdown -S -s -o TangoSpec.md
+	cp $(BUILDDIR)/latex/*.pdf $(BUILDDIR)/..
 
 htmlpdf: html latexpdf
 	cp $(BUILDDIR)/latex/*.pdf $(BUILDDIR)/html
+
+usual: readme_md htmlpdf

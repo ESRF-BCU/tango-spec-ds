@@ -1,14 +1,3 @@
-% TangoSpec 1.1 documentation
-% 
-% 
-
-[![](_static/images/logo.png)](http://www.tango-controls.org)
-
--   [Home](index.html#document-index)
--   [Getting started](index.html#document-getting_started)
--   [API](index.html#document-api)
--   [Source](http://gitlab.esrf.fr/andy.gotz/tango-spec/)
-
 Welcome to TangoSpec’s documentation!
 =====================================
 
@@ -53,7 +42,7 @@ For development, you can get get the code from ESRF gitlab:
 Go to jive and select *Edit ‣ Create server*. You will get a dialog like
 the one below:
 
-![Create TangoSpec server Jive dialog](_images/jive_create_server.png)
+![Create TangoSpec server Jive dialog](_static/images/jive_create_server.png)
 
 The *Server* field should be `TangoSpec/<instance>`{.docutils .literal}
 where instance is a name at your choice (usually the name of the spec
