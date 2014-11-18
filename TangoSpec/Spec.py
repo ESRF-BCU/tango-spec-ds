@@ -394,22 +394,23 @@ class Spec(Device):
             sequence of strings with the following syntax:
             spec_motor_name [, tango_device_name [, tango_alias_name]]
         :type motor_info: sequence<str>
-        
+
         Examples::
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.AddMotor(("th",))
             spec.AddMotor(("tth", "ID00/fourc/tth", "theta2"))
 
-        :param spec_motor_name:
+        spec_motor_name
             name of the spec motor to export to TANGO_
-        :param tango_device_name:
+        tango_device_name
             optional tango name to give to the new TANGO_ motor device
             [default: <tangospec_domain>/<tangospec_family>/<spec_motor_name>]
-        :param tango_alias_name:
+        tango_alias_name
             optional alias to give to the new tango motor device
             [default: <spec_motor_name>]. Note: if the alias
             exists it will **not** be overwritten.
+
         :throws PyTango.DevFailed:
             If SPEC_ motor does not exist or if motor is already exported
         """
@@ -460,6 +461,9 @@ class Spec(Device):
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.RemoveMotor("th")
+
+        :throws PyTango.DevFailed:
+            If motor does not exist
         """
         self.__log.info("Removing motor %s", motor_name)
         util = Util.instance()
@@ -485,22 +489,23 @@ class Spec(Device):
             sequence of strings with the following syntax:
             spec_counter_name [, tango_device_name [, tango_alias_name]]
         :type counter_info: sequence<str>
-        
+
         Examples::
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.AddCounter(("sec",))
             spec.AddCounter(("det", "ID00/fourc/detector", "detector"))
 
-        :param spec_counter_name:
+        spec_counter_name
             name of the spec counter to export to TANGO_
-        :param tango_device_name:
+        tango_device_name
             optional tango name to give to the new TANGO_ counter device
             [default: <tangospec_domain>/<tangospec_family>/<spec_counter_name>]
-        :param tango_alias_name:
+        tango_alias_name
             optional alias to give to the new tango counter device
             [default: <spec_counter_name>]. Note: if the alias
             exists it will **not** be overwritten.
+
         :throws PyTango.DevFailed:
             If SPEC_ counter does not exist or if counter is already exported
         """
@@ -552,6 +557,9 @@ class Spec(Device):
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.RemoveCounter("th")
+
+        :throws PyTango.DevFailed:
+            If counter does not exist
         """
         self.__log.info("Removing counter %s", counter_name)
         util = Util.instance()

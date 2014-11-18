@@ -547,17 +547,18 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
             spec.AddMotor(("th",))
             spec.AddMotor(("tth", "ID00/fourc/tth", "theta2"))
 
-        Parameters:
-
-        -   **spec\_motor\_name** – name of the spec motor to export to
+        spec\_motor\_name
+        :   name of the spec motor to export to
             [TANGO](http://www.tango-controls.org/)
-        -   **tango\_device\_name** – optional tango name to give to the
-            new [TANGO](http://www.tango-controls.org/) motor device
+        tango\_device\_name
+        :   optional tango name to give to the new
+            [TANGO](http://www.tango-controls.org/) motor device
             [default:
             \<tangospec\_domain\>/\<tangospec\_family\>/\<spec\_motor\_name\>]
-        -   **tango\_alias\_name** – optional alias to give to the new
-            tango motor device [default: \<spec\_motor\_name\>]. Note:
-            if the alias exists it will **not** be overwritten.
+        tango\_alias\_name
+        :   optional alias to give to the new tango motor device
+            [default: \<spec\_motor\_name\>]. Note: if the alias exists
+            it will **not** be overwritten.
 
         Throws PyTango.DevFailed:
 
@@ -580,6 +581,12 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.RemoveMotor("th")
 
+        Throws PyTango.DevFailed:
+
+         
+
+        If motor does not exist
+
      `AddCounter`{.descname}(*\*args*, *\*\*kwargs*)
     :   Adds a new SpecCounter to this DS.
 
@@ -595,17 +602,18 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
             spec.AddCounter(("sec",))
             spec.AddCounter(("det", "ID00/fourc/detector", "detector"))
 
-        Parameters:
-
-        -   **spec\_counter\_name** – name of the spec counter to export
-            to [TANGO](http://www.tango-controls.org/)
-        -   **tango\_device\_name** – optional tango name to give to the
-            new [TANGO](http://www.tango-controls.org/) counter device
+        spec\_counter\_name
+        :   name of the spec counter to export to
+            [TANGO](http://www.tango-controls.org/)
+        tango\_device\_name
+        :   optional tango name to give to the new
+            [TANGO](http://www.tango-controls.org/) counter device
             [default:
             \<tangospec\_domain\>/\<tangospec\_family\>/\<spec\_counter\_name\>]
-        -   **tango\_alias\_name** – optional alias to give to the new
-            tango counter device [default: \<spec\_counter\_name\>].
-            Note: if the alias exists it will **not** be overwritten.
+        tango\_alias\_name
+        :   optional alias to give to the new tango counter device
+            [default: \<spec\_counter\_name\>]. Note: if the alias
+            exists it will **not** be overwritten.
 
         Throws PyTango.DevFailed:
 
@@ -627,6 +635,12 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
             spec.RemoveCounter("th")
+
+        Throws PyTango.DevFailed:
+
+         
+
+        If counter does not exist
 
      `Reconstruct`{.descname}(*\*args*, *\*\*kwargs*)
     :   Exposes to Tango all counters and motors that where found in
