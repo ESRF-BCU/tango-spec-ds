@@ -43,7 +43,7 @@ _SpecCmdLineRE = re.compile("\\n*(?P<line>\d+)\.(?P<session>\w+)\>\s*")
 
 
 class Spec(Device):
-    """A TANGO_ device server for SPEC_ based on SpecClient."""
+    """A TANGO_ device for SPEC_ based on SpecClient."""
     __metaclass__ = DeviceMeta
 
     Spec = device_property(dtype=str, default_value="localhost:spec",
@@ -250,9 +250,9 @@ class Spec(Device):
         self.__log.debug("set %s = %s", v_name, value)
         self.__variables[v_name][0].setValue(value)
 
-    # -------------------------------------------------------------------------
+    # ----------------------------------------------------------------
     # Tango Commands
-    # -------------------------------------------------------------------------
+    # ----------------------------------------------------------------
 
     def _execute_cmd(self, cmd, wait=True):
         try:
@@ -332,8 +332,8 @@ class Spec(Device):
     @command(dtype_in=str, doc_in="spec variable name")
     def AddVariable(self, variable_name):
         """
-        Export a SPEC_ variable to Tango by adding a new attribute to this
-        device with the same name as the variable.
+        Export a SPEC_ variable to Tango by adding a new attribute
+        to this device with the same name as the variable.
 
         :param variable_name:
             SPEC_ variable name to be exported as a TANGO_ attribute
@@ -363,7 +363,7 @@ class Spec(Device):
     @command(dtype_in=str, doc_in="spec variable name")
     def RemoveVariable(self, variable_name):
         """
-        Unexposes the given variable from this TANGO_ DS.
+        Unexposes the given variable from this device.
 
         :param variable_name: the name of the SPEC_ variable to be removed
         :type variable_name: str
@@ -390,10 +390,11 @@ class Spec(Device):
         """
         Adds a new SpecMotor to this DS.
 
-        *motor_info* must be a sequence of strings with the following options::
-
+        :param motor_info:
+            sequence of strings with the following syntax:
             spec_motor_name [, tango_device_name [, tango_alias_name]]
-
+        :type motor_info: sequence<str>
+        
         Examples::
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")
@@ -480,10 +481,11 @@ class Spec(Device):
         """
         Adds a new SpecCounter to this DS.
 
-        *counter_info* must be a sequence of strings with the following options::
-
+        :param counter_info:
+            sequence of strings with the following syntax:
             spec_counter_name [, tango_device_name [, tango_alias_name]]
-
+        :type counter_info: sequence<str>
+        
         Examples::
 
             spec = PyTango.DeviceProxy("ID00/spec/fourc")

@@ -379,7 +379,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
-    A [TANGO](http://www.tango-controls.org/) device server for
+    A [TANGO](http://www.tango-controls.org/) device for
     [SPEC](http://www.certif.com/) based on SpecClient.
 
      `Spec`{.descname}
@@ -516,8 +516,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         [TANGO](http://www.tango-controls.org/) DS.
 
      `RemoveVariable`{.descname}(*\*args*, *\*\*kwargs*)
-    :   Unexposes the given variable from this
-        [TANGO](http://www.tango-controls.org/) DS.
+    :   Unexposes the given variable from this device.
 
         Parameters:
 
@@ -536,10 +535,11 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
      `AddMotor`{.descname}(*\*args*, *\*\*kwargs*)
     :   Adds a new SpecMotor to this DS.
 
-        *motor\_info* must be a sequence of strings with the following
-        options:
+        Parameters:
 
-            spec_motor_name [, tango_device_name [, tango_alias_name]]
+        **motor\_info** (*sequence\<str\>*) – sequence of strings with
+        the following syntax: spec\_motor\_name [, tango\_device\_name
+        [, tango\_alias\_name]]
 
         Examples:
 
@@ -583,10 +583,11 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
      `AddCounter`{.descname}(*\*args*, *\*\*kwargs*)
     :   Adds a new SpecCounter to this DS.
 
-        *counter\_info* must be a sequence of strings with the following
-        options:
+        Parameters:
 
-            spec_counter_name [, tango_device_name [, tango_alias_name]]
+        **counter\_info** (*sequence\<str\>*) – sequence of strings with
+        the following syntax: spec\_counter\_name [, tango\_device\_name
+        [, tango\_alias\_name]]
 
         Examples:
 
