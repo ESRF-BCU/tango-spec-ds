@@ -35,7 +35,7 @@ package called *TangoSpec* (in Control/Tango/Server).
 
 For development, you can get get the code from ESRF gitlab:
 
-    $ git clone git@gitlab.esrf.fr:andy.gotz/tango-spec.git
+    $ git clone git@gitlab.esrf.fr:spec/tango-spec-ds.git
 
 ### Setup a new TangoSpec server
 
