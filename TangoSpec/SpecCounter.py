@@ -102,11 +102,12 @@ class SpecCounter(Device):
         try:
             self.__log.debug("Start creating Spec counter %s", counter)
             self.__spec_counter = get_proxy(SpecCounterA, callbacks=cb)
-            self.__spec_counter.connectToSpec(counter, spec_version)
-            self.__log.debug("End creating Spec counter %s", counter)
+            self.__spec_counter.connectToSpec(counter, spec_version, timeout=.25)
         except SpecClientError as spec_error:
             status = "Error connecting to Spec counter {0}".format(counter)
             switch_state(self, DevState.FAULT, status)
+
+        self.__log.debug("End creating Spec counter %s", counter)
 
     def __getTypeStr(self):
         sc = self.__spec_counter

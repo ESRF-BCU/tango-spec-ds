@@ -145,7 +145,7 @@ class Spec(Device):
         try:
             dbg("Creating SPEC object...")
             self.__spec = get_proxy(_Spec.Spec)
-            self.__spec.connectToSpec(spec_name, timeout=1.0)
+            self.__spec.connectToSpec(spec_name, timeout=.25)
             dbg("Created SPEC object")
         except SpecClientError as spec_error:
             err("Error creating SPEC object")
@@ -186,6 +186,7 @@ class Spec(Device):
         if self.AutoDiscovery and not self.__constructing:
             self.Reconstruct()
         self.__constructing = False
+        dbg("End creating Spec %s", spec_name)
 
     def __onUpdateOutput(self, output):
         if isinstance(output, numbers.Number):
@@ -662,7 +663,8 @@ def reconstruct(spec_dev):
     """
     Exposes to Tango all counters and motors that where found in SPEC.
     """
-    logging.info("Reconstructing...")
+    log = logging.getLogger(spec_dev.get_name())
+    log.debug("Reconstructing...")
     spec = spec_dev.get_spec()
     util = Util.instance()
     get_class_devs = util.get_device_list_by_class
@@ -673,13 +675,13 @@ def reconstruct(spec_dev):
     new_motors = spec_motors.difference(motor_devs)
     del_motors = motor_devs.difference(spec_motors)
     if new_motors:
-        logging.info("new motors: %s", ", ".join(new_motors))
+        log.debug("new motors: %s", ", ".join(new_motors))
     else:
-        logging.info("no new motors to be added")
+        log.debug("no new motors to be added")
     if del_motors:
-        logging.info("remove motors: %s", ", ".join(del_motors))
+        log.debug("remove motors: %s", ", ".join(del_motors))
     else:
-        logging.info("no motors to be removed")
+        log.debug("no motors to be removed")
     for motor in new_motors:
         spec_dev.AddMotor([motor])
     for motor in del_motors:
@@ -689,13 +691,13 @@ def reconstruct(spec_dev):
     new_counters = spec_counters.difference(counter_devs)
     del_counters = counter_devs.difference(spec_counters)
     if new_counters:
-        logging.info("new counters: %s", ", ".join(new_counters))
+        log.debug("new counters: %s", ", ".join(new_counters))
     else:
-        logging.info("no new counters to be added")
+        log.debug("no new counters to be added")
     if del_counters:
-        logging.info("remove counters: %s", ", ".join(del_counters))
+        log.debug("remove counters: %s", ", ".join(del_counters))
     else:
-        logging.info("no counters to be removed")
+        log.debug("no counters to be removed")
     for counter in new_counters:
         spec_dev.AddCounter([counter])
     for counter in del_counters:

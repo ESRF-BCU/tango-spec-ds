@@ -134,15 +134,17 @@ class SpecMotor(Device):
                 disconnected=self.__motorDisconnected,
                 motorPositionChanged=self.__motorPositionChanged,
                 motorStateChanged=self.__motorStateChanged,
-                motorLimitsChanged=self.__updateLimits)
+                motorLimitsChanged=self.__motorLimitsChanged)
+
         try:
             self.__log.debug("Start creating Spec motor %s", motor)
             self.__spec_motor = get_proxy(SpecMotorA, callbacks=cb)
-            self.__spec_motor.connectToSpec(motor, spec_version)
-            self.__log.debug("End creating Spec motor %s", motor)
+            self.__spec_motor.connectToSpec(motor, spec_version, timeout=.25)
         except SpecClientError as spec_error:
             status = "Error connecting to Spec motor {0}".format(motor)
             switch_state(self, DevState.FAULT, status)
+
+        self.__log.debug("End creating Spec motor %s", motor)
 
     def always_executed_hook(self):
         pass
@@ -178,6 +180,13 @@ class SpecMotor(Device):
 
         # switch tango state and status attributes and send events
         switch_state(self, state, "Motor is now {0}".format(state))
+
+    def __motorLimitsChanged(self):
+        try:
+            self.__updateLimits()
+        except:
+            self.__log.warning("Failed to update limits")
+            self.__log.debug("Details", exc_info=1)
 
     def __updateLimits(self):
         if not self.__spec_motor:
