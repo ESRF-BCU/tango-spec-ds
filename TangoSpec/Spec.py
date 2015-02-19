@@ -265,7 +265,7 @@ class Spec(Device):
             return str(spec_cmd.executeCommand(cmd))
         else:
             task = spec_cmd.executeCommand(cmd, wait=False)
-            self.__executing_commands[id(spec_cmd)]=task
+            self.__executing_commands[id(spec_cmd)] = task, cmd, spec_cmd
             return id(spec_cmd)
 
     @command(dtype_in=str, dtype_out=str)
@@ -306,7 +306,7 @@ class Spec(Device):
         :return: the reply for the requested command
         :rtype: str
         """
-        task = self.__executing_commands.pop(cmd_id)
+        task, _, _ = self.__executing_commands.pop(cmd_id)
         task.join()
         if task.successful():
             return str(task.value)
@@ -326,8 +326,24 @@ class Spec(Device):
         """
         if not cmd_id in self.__executing_commands:
             return True
-        task = self.__executing_commands[cmd_id]
+        task, _, _ = self.__executing_commands[cmd_id]
         return task.ready()
+
+    @command(dtype_in=int, dtype_out=None)
+    def AbortCmd(self, cmd_id):
+        """
+        Aborts the command in execution given by the cmd_id, previously
+        requested through :meth:`~Spec.ExecuteCmdA`.
+
+        :param cmd_id: command identifier
+        :type cmd_id: int
+        """
+        try:
+            task, cmd_name, spec_cmd = self.__executing_commands[cmd_id]
+        except KeyError:
+            raise ValueError("Command not being run")
+        self.__log.info("Abort command %s", cmd_name)
+        spec_cmd.abort()
 
     @command(dtype_in=str, doc_in="spec variable name")
     def AddVariable(self, variable_name):
