@@ -22,8 +22,9 @@ def main():
     except ImportError:
         import os
         import sys
-        sys.path.append(os.path.join(os.path.dirname(__file__),
-                                     os.path.pardir))
+        path = os.path.realpath(os.path.join(os.path.dirname(__file__),
+                                             os.path.pardir))
+        sys.path.append(path)
         from TangoSpec import run
 
     run()
