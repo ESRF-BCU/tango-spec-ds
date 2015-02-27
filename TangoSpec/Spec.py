@@ -17,10 +17,12 @@ import logging
 import numbers
 from functools import partial
 
+from PyTango import GreenMode
 from PyTango import DevState, Util, Attr, Except, DevFailed
 from PyTango import CmdArgType, AttrWriteType, DispLevel, DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
+from PyTango.server import green_mode, get_gevent_worker
 
 from SpecClient_gevent import Spec as _Spec
 from SpecClient_gevent import SpecCommand
@@ -28,7 +30,6 @@ from SpecClient_gevent import SpecVariable
 from SpecClient_gevent import SpecEventsDispatcher
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-from TangoSpec.TgGevent import get_proxy
 from TangoSpec.SpecCommon import execute, switch_state
 
 #: read-only spectrum string attribute helper
@@ -153,7 +154,7 @@ class Spec(Device):
         # Create asynchronous spec access to get the data
         try:
             dbg("Creating SPEC object...")
-            self.__spec = get_proxy(_Spec.Spec)
+            self.__spec = _Spec.Spec()
             self.__spec.connectToSpec(spec_name, timeout=.25)
             dbg("Created SPEC object")
         except SpecClientError as spec_error:
@@ -167,8 +168,7 @@ class Spec(Device):
         cb = dict(update=self.__onUpdateOutput)
         try:
             dbg("Creating SPEC tty channel...")
-            self.__spec_tty = get_proxy(SpecVariable.SpecVariableA,
-                                        callbacks=cb)
+            self.__spec_tty = SpecVariable.SpecVariableA(callbacks=cb)
             self.__spec_tty.connectToSpec("output/tty", spec_name,
                                           dispatchMode=SpecEventsDispatcher.FIREEVENT,
                                           prefix=False)
@@ -183,19 +183,22 @@ class Spec(Device):
             return
 
         for variable in self.Variables:
-            try:
-                self.__addVariable(variable)
-            except SpecClientError as spec_error:
-                err("Error creating variable %s", variable)
-                dbg("Details:", exc_info=1)
-                msg = "Error adding variable '%s': %s" % (variable,
-                                                          str(spec_error))
-                switch_state(self, DevState.FAULT, self.get_status + "\n" + msg)
+            execute(self.__addVariableInit, variable)
 
         if self.AutoDiscovery and not self.__constructing:
             self.Reconstruct()
         self.__constructing = False
         dbg("End creating Spec %s", spec_name)
+
+    def __addVariableInit(self, variable):
+        try:
+            self.__addVariable(variable)
+        except SpecClientError as spec_error:
+            seerr("Error creating variable %s", variable)
+            dbg("Details:", exc_info=1)
+            msg = "Error adding variable '%s': %s" % (variable,
+                                                      str(spec_error))
+            switch_state(self, DevState.FAULT, self.get_status + "\n" + msg)
 
     def __onUpdateOutput(self, output):
         if isinstance(output, numbers.Number):
@@ -269,7 +272,7 @@ class Spec(Device):
 
     def _execute_cmd(self, cmd, wait=True):
         try:
-            spec_cmd = get_proxy(SpecCommand.SpecCommand, None, self.Spec)
+            spec_cmd = SpecCommand.SpecCommand(None, self.Spec)
         except SpecClientError as error:
             status = "Spec %s error: %s" % (self.Spec, error)
             switch_state(self, DevState.FAULT, status)
@@ -362,6 +365,7 @@ class Spec(Device):
         spec_cmd.abort()
 
     @command(dtype_in=str, doc_in="spec variable name")
+    @green_mode(enable=False)
     def AddVariable(self, variable_name):
         """
         Export a SPEC_ variable to Tango by adding a new attribute
@@ -638,21 +642,30 @@ class Spec(Device):
     def __addVariable(self, variable):
         self.__log.debug("Adding variable %s", variable)
         def update(value):
-            self.__log.debug("update variable '%s'", variable)
+            self.__log.debug("start update variable '%s' value...", variable)
             execute(self.push_change_event, variable, json.dumps(value))
+            self.__log.debug("finish update variable '%s' value", variable)
 
-        cb = dict(update=update)
-        v = get_proxy(SpecVariable.SpecVariableA, callbacks=cb)
-        v.connectToSpec(variable, self.Spec,
-                        dispatchMode=SpecEventsDispatcher.FIREEVENT)
-        self.__variables[variable] = v, update
-
+        self.__log.debug("Creating attribute for variable %s", variable)
         v_attr = Attr(variable, CmdArgType.DevString,
                       AttrWriteType.READ_WRITE)
         v_attr.set_change_event(True, False)
         v_attr.set_disp_level(DispLevel.EXPERT)
+        self.__log.debug("Registering attribute for variable %s", variable)
         self.add_attribute(v_attr, self.read_Variable,
                            self.write_Variable)
+
+        self.__log.debug("connecting to spec for variable '%s'", variable)
+
+        cb = dict(update=update)
+
+        def create_spec_variable(variable, cb):
+            v = SpecVariable.SpecVariableA(callbacks=cb)
+            self.__variables[variable] = v, update
+            v.connectToSpec(variable, self.Spec,
+                            dispatchMode=SpecEventsDispatcher.FIREEVENT)
+        worker = get_gevent_worker()
+        worker.execute(create_spec_variable, variable, cb)
 
     def __removeVariable(self, variable):
         del self.__variables[variable]
@@ -756,6 +769,7 @@ def run(**kwargs):
     else:
         post_init_cb = reconstruct_init
     kwargs['post_init_callback'] = post_init_cb
+    kwargs['green_mode'] = GreenMode.Gevent
     run(classes, **kwargs)
 
 
