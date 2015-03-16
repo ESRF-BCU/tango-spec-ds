@@ -139,15 +139,25 @@ class SpecMotor(Device):
         try:
             self.__log.debug("Start creating Spec motor %s", motor)
             self.__spec_motor = get_proxy(SpecMotorA, callbacks=cb)
-            self.__spec_motor.connectToSpec(motor, spec_version, timeout=.25)
         except SpecClientError as spec_error:
-            status = "Error connecting to Spec motor {0}".format(motor)
+            status = "Error creating Spec motor {0}".format(motor)
             switch_state(self, DevState.FAULT, status)
-
+        else:
+            self.__motorConnect()
         self.__log.debug("End creating Spec motor %s", motor)
 
     def always_executed_hook(self):
         pass
+
+    def __motorConnect(self):
+        motor = self.__spec_motor_name
+        try:
+            self.__spec_motor.connectToSpec(motor, self.__spec_version_name,
+                                            timeout=.25)
+        except SpecClientError as spec_error:
+            status = "Error connecting to Spec motor {0}".format(motor)
+            switch_state(self, DevState.FAULT, status)
+            raise
 
     def __motorConnected(self):
         state = DevState.ON
@@ -182,6 +192,9 @@ class SpecMotor(Device):
         switch_state(self, state, "Motor is now {0}".format(state))
 
     def __motorLimitsChanged(self):
+        execute(self.__updateLimitsSafe)
+
+    def __updateLimitsSafe(self):
         try:
             self.__updateLimits()
         except:
@@ -284,7 +297,7 @@ class SpecMotor(Device):
 
         :param rel_position: displacement
         :type rel_position: float
-        """        
+        """
         self.__spec_motor.moveRelative(rel_position)
 
     @command
@@ -298,7 +311,7 @@ class SpecMotor(Device):
     def StepDown(self):
         """
         Move the motor down by the currently configured step size
-        """        
+        """
         self.__spec_motor.moveRelative(-self.__step_size)
 
 
