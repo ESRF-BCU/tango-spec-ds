@@ -55,6 +55,9 @@ class Spec(Device):
     OutputBufferMaxLength = device_property(dtype=int,
         default_value=1000, doc="maximum output buffer length")
 
+    CommandHistoryMaxLength = device_property(dtype=int,
+        default_value=1000, doc="maximum command history length")
+
     Motors = device_property(dtype=[str], default_value=[],
         doc="List of registered SPEC motors to create "
             "(examples: tth, energy, phi)")
@@ -86,6 +89,10 @@ class Spec(Device):
 
     ## Spec output
     Output = attribute(dtype=str, access=AttrWriteType.READ)
+
+    ## Command history
+    CommandHistory = str_1D_attr(doc="List of spec commands executed from "
+                                 "this server")
 
     def __init__(self, *args, **kwargs):
         self.__cmd_line = False
@@ -119,6 +126,7 @@ class Spec(Device):
         self.__output = []
         self.__variables = dict()
         self.__executing_commands = dict()
+        self.__command_history = []
 
         self.set_change_event("State", True, True)
         self.set_change_event("Status", True, False)
@@ -126,6 +134,7 @@ class Spec(Device):
         self.set_change_event("MotorList", True, False)
         self.set_change_event("CounterList", True, False)
         self.set_change_event("VariableList", True, False)
+        self.set_change_event("CommandHistory", True, False)
 
         switch_state(self, DevState.INIT, "Initializing spec " + self.Spec)
 
@@ -251,6 +260,9 @@ class Spec(Device):
         self.__log.debug("set %s = %s", v_name, value)
         self.__variables[v_name][0].setValue(value)
 
+    def read_CommandHistory(self):
+        return self.__command_history
+
     # ----------------------------------------------------------------
     # Tango Commands
     # ----------------------------------------------------------------
@@ -263,11 +275,14 @@ class Spec(Device):
             switch_state(self, DevState.FAULT, status)
 
         if wait:
-            return str(spec_cmd.executeCommand(cmd))
+            result = str(spec_cmd.executeCommand(cmd))
         else:
             task = spec_cmd.executeCommand(cmd, wait=False)
             self.__executing_commands[id(spec_cmd)] = task, cmd, spec_cmd
-            return id(spec_cmd)
+            result = id(spec_cmd)
+
+        self.__appendCommandHistory(cmd)
+        return result
 
     @command(dtype_in=str, dtype_out=str)
     def ExecuteCmd(self, command):
@@ -642,6 +657,21 @@ class Spec(Device):
     def __removeVariable(self, variable):
         del self.__variables[variable]
         self.remove_attribute(variable)
+
+    def __appendCommandHistory(self, cmd):
+        """
+        Append command to the history if current command is different from
+        last command. Fires an event on the CommandHistory attribute with
+        the last command executed
+        """
+        history = self.__command_history
+        if history and history[-1] == cmd:
+            return
+        history.append(cmd)
+        while len(history) > self.CommandHistoryMaxLength:
+            history.pop(0)
+        execute(self.push_change_event, "CommandHistory",[cmd])
+
 
 
 def __findClassDevices(tg_class, prop=None):
