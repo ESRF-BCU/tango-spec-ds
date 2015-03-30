@@ -35,9 +35,9 @@ called *TangoSpec* (in Control/Tango/Server).
 Development environment
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-For development, you can get get the code from ESRF gitlab::
+For development, you can get the code from ESRF gitlab::
 
-    $ git clone git@gitlab.esrf.fr:andy.gotz/tango-spec.git
+    $ git clone git@gitlab.esrf.fr:spec/tango-spec-ds.git
 
 .. _tangospec_setup:
 

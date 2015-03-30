@@ -1,13 +1,13 @@
-% TangoSpec 1.1 documentation
-%
-%
+---
+title: 'TangoSpec 1.1.0final0 documentation'
+...
 
 [![](_static/images/logo.png)](http://www.tango-controls.org)
 
 -   [Home](index.html#document-index)
 -   [Getting started](index.html#document-getting_started)
 -   [API](index.html#document-api)
--   [Source](http://gitlab.esrf.fr/spec/tango-spec-ds/)
+-   [Source](http://gitlab.esrf.fr/andy.gotz/tango-spec/)
 
 Welcome to TangoSpec’s documentation!
 =====================================
@@ -44,13 +44,13 @@ package called *TangoSpec* (in Control/Tango/Server).
 
 #### Development environment
 
-For development, you can get get the code from ESRF gitlab:
+For development, you can get the code from ESRF gitlab:
 
     $ git clone git@gitlab.esrf.fr:spec/tango-spec-ds.git
 
 ### Setup a new TangoSpec server
 
-Go to jive and select *Edit ‣ Create server*. You will get a dialog like
+Go to jive and select Edit ‣ Create server. You will get a dialog like
 the one below:
 
 ![Create TangoSpec server Jive dialog](_images/jive_create_server.png)
@@ -77,7 +77,7 @@ Optional:
     This means that motors and counters will **not** be automatically
     added. You can changed this behavior by setting a new property
     called AutoDiscovery and setting it to `True`{.docutils .literal}
-    (See [*Auto discovery*](index.html#tangospec-auto-discovery))
+    (See [Auto discovery](#tangospec-auto-discovery))
 
 Now go to the command line and type (replace *fourc* with your server
 instance):
@@ -94,9 +94,8 @@ provided by spec. All motors and counters from spec will be
 automatically exposed as TANGO devices.
 
 When auto discovery is disabled, tango motors and counters must be
-created manually (see [*Expose a
-motor*](index.html#tangospec-expose-motor) and [*Expose a
-counter*](index.html#tangospec-expose-counter)).
+created manually (see [Expose a motor](#tangospec-expose-motor) and
+[Expose a counter](#tangospec-expose-counter)).
 
 Auto discovery is disabled by default unless you set the
 `AutoDiscovery`{.docutils .literal} property of the Spec device has been
@@ -152,8 +151,8 @@ Each motor in [SPEC](http://www.certif.com/) can be represented as a
 .literal}](index.html#TangoSpec.SpecMotor "TangoSpec.SpecMotor").
 
 When you setup a new *TangoSpec* device server it will not export any of
-the [SPEC](http://www.certif.com/) motors unless [*auto
-discovery*](index.html#tangospec-auto-discovery) is enabled.
+the [SPEC](http://www.certif.com/) motors unless [auto
+discovery](#tangospec-auto-discovery) is enabled.
 
 To export a [SPEC](http://www.certif.com/) motor to spec just execute
 the [TANGO](http://www.tango-controls.org/) command [`AddMotor()`{.xref
@@ -191,8 +190,8 @@ Each counter in [SPEC](http://www.certif.com/) can be represented as a
 .literal}](index.html#TangoSpec.SpecCounter "TangoSpec.SpecCounter").
 
 When you setup a new *TangoSpec* device server it will not export any of
-the [SPEC](http://www.certif.com/) counters unless [*auto
-discovery*](index.html#tangospec-auto-discovery) is enabled.
+the [SPEC](http://www.certif.com/) counters unless [auto
+discovery](#tangospec-auto-discovery) is enabled.
 
 To export a [SPEC](http://www.certif.com/) counter to spec just execute
 the [TANGO](http://www.tango-controls.org/) command
@@ -255,8 +254,7 @@ Example how to expose a [SPEC](http://www.certif.com/) variable called
 Note
 
 Spec sessions can contain literally thousands of variables. For this
-reason neither the [*auto
-discovery*](index.html#tangospec-auto-discovery) nor the
+reason neither the [auto discovery](#tangospec-auto-discovery) nor the
 [`Reconstruct()`{.xref .py .py-meth .docutils
 .literal}](index.html#TangoSpec.Spec.Reconstruct "TangoSpec.Spec.Reconstruct")
 command will expose spec variables automatically to
@@ -306,8 +304,8 @@ command. Example:
     >>> fourc.ExecuteCmd("wa")
 
 (nothing will be shown because you are not listening to
-[SPEC](http://www.certif.com/) output. See [*Listen to
-output*](index.html#tangospec-output))
+[SPEC](http://www.certif.com/) output. See [Listen to
+output](#tangospec-output))
 
 *Quick* macros can be ran using this synchronous method. Macros that
 take a long time (ex: ascan) will block the client and eventually a
@@ -383,10 +381,10 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 [TANGO](http://www.tango-controls.org/) interface to
 [SPEC](http://www.certif.com/).
 
- `TangoSpec.`{.descclassname}`run`{.descname}(*\*\*kwargs*)
+ `TangoSpec.`{.descclassname}`run`{.descname}(*\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#run)
 :   Runs the Spec device server
 
- *class*`TangoSpec.`{.descclassname}`Spec`{.descname}(*\*args*, *\*\*kwargs*)
+ *class*`TangoSpec.`{.descclassname}`Spec`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec)
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
@@ -401,8 +399,8 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
      `AutoDiscovery`{.descname}
     :   [TANGO](http://www.tango-controls.org/) device property (bool)
-        describing if auto discovery is enabled or disabled (see: [*Auto
-        discovery*](index.html#tangospec-auto-discovery)). Default value
+        describing if auto discovery is enabled or disabled (see: [Auto
+        discovery](index.html#tangospec-auto-discovery)). Default value
         is `False`{.docutils .literal}.
 
      `OutputBufferMaxLength`{.descname}
@@ -438,10 +436,10 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         [SPEC](http://www.certif.com/) console output (output/tty
         variable)
 
-     `ExecuteCmd`{.descname}(*\*args*, *\*\*kwargs*)
+     `ExecuteCmd`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.ExecuteCmd)
     :   Execute a [SPEC](http://www.certif.com/) command synchronously.
         Use [`ExecuteCmdA()`{.xref .py .py-meth .docutils
-        .literal}](index.html#TangoSpec.Spec.ExecuteCmdA "TangoSpec.Spec.ExecuteCmdA")
+        .literal}](#TangoSpec.Spec.ExecuteCmdA "TangoSpec.Spec.ExecuteCmdA")
         instead if you intend to run commands that take some time.
 
         Parameters:
@@ -450,7 +448,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         ([*str*](http://docs.python.org/library/functions.html#str "(in Python v2.7)"))
         – the command to be executed (ex: `"wa"`{.docutils .literal} )
 
-     `ExecuteCmdA`{.descname}(*\*args*, *\*\*kwargs*)
+     `ExecuteCmdA`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.ExecuteCmdA)
     :   Execute a [SPEC](http://www.certif.com/) command asynchronously.
 
         Parameters:
@@ -466,13 +464,13 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         Return type:
 
-        int
+        [int](http://docs.python.org/library/functions.html#int "(in Python v2.7)")
 
-     `GetReply`{.descname}(*\*args*, *\*\*kwargs*)
+     `GetReply`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.GetReply)
     :   Returns the reply of the [SPEC](http://www.certif.com/) command
         given by the cmd\_id, previously requested through
         [`ExecuteCmdA()`{.xref .py .py-meth .docutils
-        .literal}](index.html#TangoSpec.Spec.ExecuteCmdA "TangoSpec.Spec.ExecuteCmdA").
+        .literal}](#TangoSpec.Spec.ExecuteCmdA "TangoSpec.Spec.ExecuteCmdA").
         It waits if the command is not finished
 
         Parameters:
@@ -487,9 +485,9 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         Return type:
 
-        str
+        [str](http://docs.python.org/library/functions.html#str "(in Python v2.7)")
 
-     `IsReplyArrived`{.descname}(*\*args*, *\*\*kwargs*)
+     `IsReplyArrived`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.IsReplyArrived)
     :   Determines if a command executed previously with the given
         cmd\_id is finished.
 
@@ -505,9 +503,20 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         Return type:
 
-        bool
+        [bool](http://docs.python.org/library/functions.html#bool "(in Python v2.7)")
 
-     `AddVariable`{.descname}(*\*args*, *\*\*kwargs*)
+     `AbortCmd`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.AbortCmd)
+    :   Aborts the command in execution given by the cmd\_id, previously
+        requested through [`ExecuteCmdA()`{.xref .py .py-meth .docutils
+        .literal}](#TangoSpec.Spec.ExecuteCmdA "TangoSpec.Spec.ExecuteCmdA").
+
+        Parameters:
+
+        **cmd\_id**
+        ([*int*](http://docs.python.org/library/functions.html#int "(in Python v2.7)"))
+        – command identifier
+
+     `AddVariable`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.AddVariable)
     :   Export a [SPEC](http://www.certif.com/) variable to Tango by
         adding a new attribute to this device with the same name as the
         variable.
@@ -526,7 +535,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If the variable is already exposed in this
         [TANGO](http://www.tango-controls.org/) DS.
 
-     `RemoveVariable`{.descname}(*\*args*, *\*\*kwargs*)
+     `RemoveVariable`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.RemoveVariable)
     :   Unexposes the given variable from this device.
 
         Parameters:
@@ -543,7 +552,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If the variable is not exposed in this
         [TANGO](http://www.tango-controls.org/) DS
 
-     `AddMotor`{.descname}(*\*args*, *\*\*kwargs*)
+     `AddMotor`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.AddMotor)
     :   Adds a new SpecMotor to this DS.
 
         Parameters:
@@ -578,7 +587,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If [SPEC](http://www.certif.com/) motor does not exist or if
         motor is already exported
 
-     `RemoveMotor`{.descname}(*\*args*, *\*\*kwargs*)
+     `RemoveMotor`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.RemoveMotor)
     :   Removes the given SpecMotor from this DS.
 
         Parameters:
@@ -598,7 +607,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         If motor does not exist
 
-     `AddCounter`{.descname}(*\*args*, *\*\*kwargs*)
+     `AddCounter`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.AddCounter)
     :   Adds a new SpecCounter to this DS.
 
         Parameters:
@@ -633,7 +642,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         If [SPEC](http://www.certif.com/) counter does not exist or if
         counter is already exported
 
-     `RemoveCounter`{.descname}(*\*args*, *\*\*kwargs*)
+     `RemoveCounter`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.RemoveCounter)
     :   Removes the given SpecCounter from this DS.
 
         Parameters:
@@ -653,11 +662,11 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
         If counter does not exist
 
-     `Reconstruct`{.descname}(*\*args*, *\*\*kwargs*)
+     `Reconstruct`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/Spec.html#Spec.Reconstruct)
     :   Exposes to Tango all counters and motors that where found in
         SPEC.
 
- *class*`TangoSpec.`{.descclassname}`SpecMotor`{.descname}(*cl*, *name*)
+ *class*`TangoSpec.`{.descclassname}`SpecMotor`{.descname}(*cl*, *name*)[[source]](_modules/TangoSpec/SpecMotor.html#SpecMotor)
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
@@ -745,13 +754,13 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
     Initializes the [TANGO](http://www.tango-controls.org/) motor
 
-     `Stop`{.descname}(*\*args*, *\*\*kwargs*)
+     `Stop`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecMotor.html#SpecMotor.Stop)
     :   Stop the motor (allowing deceleration time)
 
-     `Abort`{.descname}(*\*args*, *\*\*kwargs*)
+     `Abort`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecMotor.html#SpecMotor.Abort)
     :   Stop the motor immediately
 
-     `Move`{.descname}(*\*args*, *\*\*kwargs*)
+     `Move`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecMotor.html#SpecMotor.Move)
     :   Move the motor to the given absolute position
 
         Parameters:
@@ -760,7 +769,7 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         ([*float*](http://docs.python.org/library/functions.html#float "(in Python v2.7)"))
         – absolute destination position
 
-     `MoveRelative`{.descname}(*\*args*, *\*\*kwargs*)
+     `MoveRelative`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecMotor.html#SpecMotor.MoveRelative)
     :   Move the motor by the given displacement.
 
         Parameters:
@@ -769,13 +778,13 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         ([*float*](http://docs.python.org/library/functions.html#float "(in Python v2.7)"))
         – displacement
 
-     `StepUp`{.descname}(*\*args*, *\*\*kwargs*)
+     `StepUp`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecMotor.html#SpecMotor.StepUp)
     :   Move the motor up by the currently configured step size
 
-     `StepDown`{.descname}(*\*args*, *\*\*kwargs*)
+     `StepDown`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecMotor.html#SpecMotor.StepDown)
     :   Move the motor down by the currently configured step size
 
- *class*`TangoSpec.`{.descclassname}`SpecCounter`{.descname}(*cl*, *name*)
+ *class*`TangoSpec.`{.descclassname}`SpecCounter`{.descname}(*cl*, *name*)[[source]](_modules/TangoSpec/SpecCounter.html#SpecCounter)
 :   Bases: `PyTango.server.Device`{.xref .py .py-class .docutils
     .literal}
 
@@ -820,17 +829,17 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
 
     Initializes the [TANGO](http://www.tango-controls.org/) counter
 
-     `Count`{.descname}(*\*args*, *\*\*kwargs*)
+     `Count`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecCounter.html#SpecCounter.Count)
     :   Count by the specified time (s)
 
         Parameters:
 
         **count\_time** – count time (s)
 
-     `Stop`{.descname}(*\*args*, *\*\*kwargs*)
+     `Stop`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecCounter.html#SpecCounter.Stop)
     :   Stop counting
 
-     `setEnabled`{.descname}(*\*args*, *\*\*kwargs*)
+     `setEnabled`{.descname}(*\*args*, *\*\*kwargs*)[[source]](_modules/TangoSpec/SpecCounter.html#SpecCounter.setEnabled)
     :   Enable/Disable counter
 
         Parameters:
@@ -839,11 +848,11 @@ A [TANGO](http://www.tango-controls.org/) device server which provides a
         ([*bool*](http://docs.python.org/library/functions.html#bool "(in Python v2.7)"))
         – enable or disable
 
-#### Navigation
+#### Navigation {.sidebar-box-heading}
 
 -   [Documentation Home](index.html#document-index)
 
-#### Versions
+#### Versions {.sidebar-box-heading}
 
 -   [PDF version](TangoSpec.pdf)
 

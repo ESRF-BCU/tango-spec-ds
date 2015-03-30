@@ -13,7 +13,7 @@
 
 def main():
     import logging
-    logging.basicConfig(level=logging.WARN,
+    logging.basicConfig(level=logging.DEBUG,
                         format="%(threadName)10s %(asctime)s "
                         "%(levelname)5s %(name)s: %(message)s")
 
