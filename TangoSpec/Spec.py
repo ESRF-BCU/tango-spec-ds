@@ -734,7 +734,10 @@ def reconstruct(spec_dev):
 
 def reconstruct_init():
     util = Util.instance()
-    spec_dev = util.get_device_list_by_class("Spec")[0]
+    spec_devs = util.get_device_list_by_class("Spec")
+    if not spec_devs:
+        return
+    spec_dev = spec_devs[0]
     if not spec_dev.AutoDiscovery:
         return
     reconstruct(spec_dev)
@@ -759,4 +762,4 @@ def run(**kwargs):
 
 
 if __name__ == '__main__':
-    run()
+    run(verbose=True)
