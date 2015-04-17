@@ -15,7 +15,7 @@ __this_year = datetime.date.today().year
 del datetime
 
 __project__ = 'TangoSpec'
-__version_info__ = (1, 1, 0, 'final', 0)
+__version_info__ = (1, 2, 0, 'final', 0)
 __version__ = "{0[0]}.{0[1]}.{0[2]}".format(__version_info__)
 __authors__ = ['Andy Gotz', 'Tiago Coutinho', 'Matias Guijarro']
 __author__ = __authors__[0]
