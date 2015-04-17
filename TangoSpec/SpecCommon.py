@@ -86,7 +86,7 @@ def switch_state(device, state=None, status=None):
     """Helper to switch state and/or status and send event"""
     if state is not None:
         device.set_state(state)
-        execute(device.push_change_event, "state")
+        device.push_change_event("state")
         if state in (DevState.ALARM, DevState.UNKNOWN, DevState.FAULT):
             msg = "State changed to " + str(state) 
             if status is not None:
@@ -94,7 +94,7 @@ def switch_state(device, state=None, status=None):
             logging.error("%s: %s", device.get_name(), msg)
     if status is not None:
         device.set_status(status)
-        execute(device.push_change_event, "status")
+        device.push_change_event("status")
 
 
 def get_spec_names():
@@ -104,3 +104,25 @@ def get_spec_names():
         return []
     return [ts.Spec for ts in tango_specs]
 
+
+def find_spec_name(device, name):
+    class_name = device.__class__.__name__
+    try:
+        host, session, element = name.split(":")
+        spec_version = "%s:%s" % (host, session)
+    except ValueError:
+        specs = get_spec_names()
+        if not specs:
+            status = "Wrong {0} property: Not inside a Spec. " \
+                     "Need the full {0} name".format(class_name)
+            switch_state(device, DevState.FAULT, status)
+            return
+        elif len(specs) > 1:
+            status = "Wrong {0} property: More than one Spec in tango " \
+                     "server. Need the full {0} name".format(class_name)
+            switch_state(device, DevState.FAULT, status)
+            return
+        else:
+            spec_version = specs[0]
+            element = name
+    return spec_version, element

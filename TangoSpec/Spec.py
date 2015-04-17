@@ -17,12 +17,15 @@ import logging
 import numbers
 from functools import partial
 
+from PyTango import requires_pytango
+
+requires_pytango("8.1.7", software_name="TangoSpec")
+
 from PyTango import GreenMode
 from PyTango import DevState, Util, Attr, Except, DevFailed
 from PyTango import CmdArgType, AttrWriteType, DispLevel, DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
-from PyTango.server import green_mode, get_gevent_worker
 
 from SpecClient_gevent import Spec as _Spec
 from SpecClient_gevent import SpecCommand
@@ -37,10 +40,6 @@ str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
                       max_dim_x=512)
 
 _SpecCmdLineRE = re.compile("\\n*(?P<line>\d+)\.(?P<session>\w+)\>\s*")
-
-
-#TODO:
-# 1 - tests!
 
 
 class Spec(Device):
@@ -112,6 +111,8 @@ class Spec(Device):
         self.__spec_tty = None
         self.__variables = None
 
+
+
     @DebugIt()
     def init_device(self):
         self.__log = logging.getLogger(self.get_name())
@@ -156,7 +157,7 @@ class Spec(Device):
             dbg("Creating SPEC object...")
             self.__spec = _Spec.Spec()
             self.__spec.connectToSpec(spec_name, timeout=.25)
-            dbg("Created SPEC object")
+            dbg("Finished creating SPEC object")
         except SpecClientError as spec_error:
             err("Error creating SPEC object")
             dbg("Details:", exc_info=1)
@@ -172,7 +173,7 @@ class Spec(Device):
             self.__spec_tty.connectToSpec("output/tty", spec_name,
                                           dispatchMode=SpecEventsDispatcher.FIREEVENT,
                                           prefix=False)
-            dbg("Created SPEC tty channel")
+            dbg("Finished creating SPEC tty channel")
             switch_state(self, DevState.ON, "Connected to spec " + spec_name)
         except SpecClientError as spec_error:
             err("Error creating SPEC tty channel")
@@ -183,12 +184,12 @@ class Spec(Device):
             return
 
         for variable in self.Variables:
-            execute(self.__addVariableInit, variable)
+            self.__addVariableInit(variable)
 
         if self.AutoDiscovery and not self.__constructing:
             self.Reconstruct()
         self.__constructing = False
-        dbg("End creating Spec %s", spec_name)
+        dbg("Finished creating Spec %s", spec_name)
 
     def __addVariableInit(self, variable):
         try:
@@ -201,6 +202,7 @@ class Spec(Device):
             switch_state(self, DevState.FAULT, self.get_status + "\n" + msg)
 
     def __onUpdateOutput(self, output):
+
         if isinstance(output, numbers.Number):
             text = "{0:12}\n".format(output)
         else:
@@ -224,7 +226,7 @@ class Spec(Device):
         self.__output.append(text)
         while len(self.__output) > self.OutputBufferMaxLength:
             self.__output.pop(0)
-        execute(self.push_change_event , "Output", text)
+        self.push_change_event("Output", text)
 
     @DebugIt()
     def read_SpecMotorList(self):
@@ -253,6 +255,7 @@ class Spec(Device):
     @DebugIt()
     def read_Variable(self, attr):
         v_name = attr.get_name()
+        self.__log.debug("read variable %s", v_name)
         value = self.__variables[v_name][0].getValue()
         attr.set_value(json.dumps(value))
 
@@ -361,11 +364,10 @@ class Spec(Device):
             task, cmd_name, spec_cmd = self.__executing_commands[cmd_id]
         except KeyError:
             raise ValueError("Command not being run")
-        self.__log.info("Abort command %s", cmd_name)
+        self.__log.debug("Abort command %s", cmd_name)
         spec_cmd.abort()
 
     @command(dtype_in=str, doc_in="spec variable name")
-    @green_mode(enable=False)
     def AddVariable(self, variable_name):
         """
         Export a SPEC_ variable to Tango by adding a new attribute
@@ -377,7 +379,7 @@ class Spec(Device):
         :throws PyTango.DevFailed:
             If the variable is already exposed in this TANGO_ DS.
         """
-        self.__log.info("Adding new variable %s", variable_name)
+        self.__log.info("Adding new variable %s...", variable_name)
         if variable_name in self.__variables:
             raise Exception("Variable '%s' is already defined as an attribute!" %
                             (variable_name,))
@@ -394,7 +396,8 @@ class Spec(Device):
         variables = self.__get_VariableList()
         db.put_device_property(self.get_name(), {"Variables" : variables})
 
-        execute(self.push_change_event, "VariableList", variables)
+        self.push_change_event("VariableList", variables)
+        self.__log.info("Finished adding new variable")
 
     @command(dtype_in=str, doc_in="spec variable name")
     def RemoveVariable(self, variable_name):
@@ -406,19 +409,21 @@ class Spec(Device):
         :throws PyTango.DevFailed:
             If the variable is not exposed in this TANGO_ DS
         """
-        self.__log.info("Removing variable %s", variable_name)
+        self.__log.info("Removing variable %s...", variable_name)
         if variable_name not in self.__variables:
             raise Exception("Variable '%s' is not defined as an attribute!" %
                             (variable_name,))
 
-        self.__removeVariable(variable_name)
+        del self.__variables[variable]
+        self.remove_attribute(variable)
 
         # update property in the database
         db = Util.instance().get_database()
         variables = self.__get_VariableList()
         db.put_device_property(self.get_name(), {"Variables" : variables})
 
-        execute(self.push_change_event, "VariableList", variables)
+        self.push_change_event("VariableList", variables)
+        self.__log.info("Finished removing variable")
 
     @command(dtype_in=[str],
              doc_in="spec motor name [, tango device name [, tango alias name]]")
@@ -450,40 +455,7 @@ class Spec(Device):
         :throws PyTango.DevFailed:
             If SPEC_ motor does not exist or if motor is already exported
         """
-        self.__log.info("Adding new motor %s", motor_info)
-        util = Util.instance()
-
-        motor_name = motor_info[0]
-
-        if not motor_name in self.__spec.getMotorsMne():
-            Except.throw_exception("Spec_UnknownMotor",
-                                   "Unknown motor '%s'" % motor_name,
-                                   "Spec::AddMotor")
-
-        dev_name = self.get_name().rsplit("/", 1)[0] + "/" + motor_name
-        if len(motor_info) > 1:
-            dev_name = motor_info[1]
-
-        motor_alias = motor_name
-        if len(motor_info) > 2:
-            motor_alias = motor_info[2]
-
-        def cb(name):
-            db = util.get_database()
-            db.put_device_property(dev_name, dict(SpecMotor=motor_name))
-            try:
-                old_dev_name = db.get_device_alias(motor_alias)
-                self.__log.warning(
-                    "%s already associated with device %s. Tango "
-                    "alias will NOT be created", motor_alias,
-                    old_dev_name)
-            except DevFailed:
-                db.put_device_alias(dev_name, motor_alias)
-
-        util.create_device("SpecMotor", dev_name, cb=cb)
-
-        execute(self.push_change_event, "MotorList",
-                self.__get_MotorList())
+        self.__addElement("Motor", motor_info)
 
     @command(dtype_in=str, doc_in="spec motor name")
     def RemoveMotor(self, motor_name):
@@ -501,19 +473,7 @@ class Spec(Device):
         :throws PyTango.DevFailed:
             If motor does not exist
         """
-        self.__log.info("Removing motor %s", motor_name)
-        util = Util.instance()
-        tango_spec_motors = util.get_device_list_by_class("SpecMotor")
-        for tango_spec_motor in tango_spec_motors:
-            if tango_spec_motor.get_spec_motor_name() == motor_name:
-                tango_spec_motor_name = tango_spec_motor.get_name()
-                util.delete_device("SpecMotor", tango_spec_motor_name)
-                break
-        else:
-            raise KeyError("No motor with name '%s'" % motor_name)
-
-        execute(self.push_change_event, "MotorList",
-                self.__get_MotorList())
+        self.__removeElement("Motor", motor_name)
 
     @command(dtype_in=[str],
              doc_in="spec counter name [, tango device name [, tango alias name]]")
@@ -545,41 +505,7 @@ class Spec(Device):
         :throws PyTango.DevFailed:
             If SPEC_ counter does not exist or if counter is already exported
         """
-        self.__log.info("Adding new counter %s", counter_info)
-        util = Util.instance()
-
-        counter_name = counter_info[0]
-
-        if not counter_name in self.__spec.getCountersMne():
-            Except.throw_exception("Spec_UnknownCounter",
-                                   "Unknown counter '%s'" % counter_name,
-                                   "Spec::AddCounter")
-
-        dev_name = self.get_name().rsplit("/", 1)[0] + "/" + counter_name
-        if len(counter_info) > 1:
-            dev_name = counter_info[1]
-
-        counter_alias = counter_name
-        if len(counter_info) > 2:
-            counter_alias = counter_info[2]
-
-        def cb(name):
-            db = util.get_database()
-            db.put_device_property(dev_name,
-                                   dict(SpecCounter=counter_name))
-            try:
-                old_dev_name = db.get_device_alias(counter_alias)
-                self.__log.warning(
-                    "%s already associated with device %s. Tango "
-                    "alias will NOT be created", counter_alias,
-                    old_dev_name)
-            except DevFailed:
-                db.put_device_alias(dev_name, counter_alias)
-
-        util.create_device("SpecCounter", dev_name, cb=cb)
-
-        execute(self.push_change_event, "CounterList",
-                self.__get_CounterList())
+        self.__addElement("Counter", counter_info)
 
     @command(dtype_in=str, doc_in="spec counter name")
     def RemoveCounter(self, counter_name):
@@ -597,19 +523,8 @@ class Spec(Device):
         :throws PyTango.DevFailed:
             If counter does not exist
         """
-        self.__log.info("Removing counter %s", counter_name)
-        util = Util.instance()
-        tango_spec_counters = util.get_device_list_by_class("SpecCounter")
-        for tango_spec_counter in tango_spec_counters:
-            if tango_spec_counter.get_spec_counter_name() == counter_name:
-                tango_spec_counter_name = tango_spec_counter.get_name()
-                util.delete_device("SpecCounter", tango_spec_counter_name)
-                break
-        else:
-            raise KeyError("No counter with name '%s'" % counter_name)
+        self.__removeElement("Counter", counter_name)
 
-        execute(self.push_change_event, "CounterList",
-                self.__get_CounterList())
 
     @command
     def Reconstruct(self):
@@ -626,50 +541,120 @@ class Spec(Device):
     def __execute(self, f, *args, **kwargs):
         self.__tango_worker.execute(f, *args, **kwargs)
 
+    def __addElement(self, etype, element_info):
+        dev_type = "Spec" + etype
+        etype_lower = etype.lower()
+        spec_name = element_info[0]
+        self.__log.info("Adding new %s '%s'...", etype_lower, spec_name)
+
+        get_f_name = "get{0}sMne".format(etype)
+        spec_elements = getattr(self.__spec, get_f_name)()
+
+        devices = Util.instance().get_device_list_by_class(dev_type)
+        for device in devices:
+            if device.get_spec_name() == spec_name:
+                raise ValueError("{0} '{1}' already registered".format(etype,
+                    spec_name))
+
+        if not spec_name in spec_elements:
+            Except.throw_exception("Spec_Unknown{0}".format(etype),
+                "Unknown {0} '{1}'".format(etype_lower, spec_name),
+                "Spec.Add{0}".format(etype))
+
+        dev_name = self.get_name().rsplit("/", 1)[0] + "/" + spec_name
+        if len(element_info) > 1:
+            dev_name = element_info[1]
+
+        element_alias = spec_name
+        if len(element_info) > 2:
+            element_alias = element_info[2]
+
+        execute(self.__addElementTango, etype, spec_name, dev_name,
+                element_alias)
+        self.__log.info("Finished adding %s '%s'", etype_lower, spec_name)
+
+    def __addElementTango(self, etype, spec_name, dev_name, dev_alias):
+        dev_type, attr = "Spec" + etype, etype + "List"
+        def cb(name):
+            db = Util.instance().get_database()
+            db.put_device_property(dev_name, {dev_type: spec_name})
+            try:
+                old_dev_name = db.get_device_alias(dev_alias)
+                self.__log.warning("%s already associated with device %s. "\
+                                   "Tango alias will NOT be created",
+                                   dev_alias, old_dev_name)
+            except DevFailed:
+                db.put_device_alias(dev_name, dev_alias)
+
+        Util.instance().create_device(dev_type, dev_name, cb=cb)
+        self.push_change_event(attr, self.__get_ElementList(etype))
+
+    def __removeElement(self, etype, element_name):
+        etype_lower = etype.lower()
+        dev_type = "Spec" + etype
+        self.__log.info("Removing %s '%s'...", etype_lower, element_name)
+        devices = Util.instance().get_device_list_by_class(dev_type)
+        for device in devices:
+            if device.get_spec_name() == element_name:
+                dev_name = device.get_name()
+                execute(self.__removeElementTango, etype, dev_name)
+                break
+        else:
+            raise KeyError("No {0} with name '{1}".format(etype_lower,
+                                                          element_name))
+        self.__log.info("Finished removing %s '%s'", etype_lower, element_name)
+
+    def __removeElementTango(self, etype, dev_name):
+        dev_type, attr = "Spec" + etype, etype + "List"
+        Util.instance().delete_device(dev_type, dev_name)
+        self.push_change_event(attr, self.__get_ElementList(etype))
+
+    def __get_ElementList(self, etype):
+        elements = Util.instance().get_device_list_by_class("Spec" + etype)
+        return ["{0} {1}".format(element.get_spec_name(), element.get_name())
+                for element in elements]
+
     def __get_MotorList(self):
-        util = Util.instance()
-        motors = util.get_device_list_by_class("SpecMotor")
-        return ["{0} {1}".format(m.get_spec_motor_name(), m.get_name()) for m in motors]
+        return self.__get_ElementList("Motor")
 
     def __get_CounterList(self):
-        util = Util.instance()
-        counters = util.get_device_list_by_class("SpecCounter")
-        return ["{0} {1}".format(c.get_spec_counter_name(), c.get_name()) for c in counters]
+        return self.__get_ElementList("Counter")
 
     def __get_VariableList(self):
         return sorted(self.__variables)
 
     def __addVariable(self, variable):
         self.__log.debug("Adding variable %s", variable)
+        multi_attr = self.get_device_attr()
+        has_attr = True
+        try:
+            multi_attr.get_attr_by_name(variable)
+        except:
+            has_attr = False
+
+        if not has_attr:
+            self.__log.debug("Creating attribute for variable %s", variable)
+            attr = attribute(name=variable, dtype=str,
+                             access=AttrWriteType.READ_WRITE,
+                             doc="spec variable '{0}' (string in JSON format)",
+                             fget=self.read_Variable, fset=self.write_Variable,
+                             display_level=DispLevel.EXPERT)
+            self.__log.debug("Registering attribute for variable '%s'...",
+                             variable)
+            self.add_attribute(attr)
+            attr_obj = self.get_device_attr().get_attr_by_name(variable)
+            attr_obj.set_change_event(True, False)
+
+        self.__log.debug("Connecting to spec for variable '%s'...", variable)
         def update(value):
             self.__log.debug("start update variable '%s' value...", variable)
-            execute(self.push_change_event, variable, json.dumps(value))
+            self.push_change_event(variable, json.dumps(value))
             self.__log.debug("finish update variable '%s' value", variable)
-
-        self.__log.debug("Creating attribute for variable %s", variable)
-        v_attr = Attr(variable, CmdArgType.DevString,
-                      AttrWriteType.READ_WRITE)
-        v_attr.set_change_event(True, False)
-        v_attr.set_disp_level(DispLevel.EXPERT)
-        self.__log.debug("Registering attribute for variable %s", variable)
-        self.add_attribute(v_attr, self.read_Variable,
-                           self.write_Variable)
-
-        self.__log.debug("connecting to spec for variable '%s'", variable)
-
         cb = dict(update=update)
-
-        def create_spec_variable(variable, cb):
-            v = SpecVariable.SpecVariableA(callbacks=cb)
-            self.__variables[variable] = v, update
-            v.connectToSpec(variable, self.Spec,
-                            dispatchMode=SpecEventsDispatcher.FIREEVENT)
-        worker = get_gevent_worker()
-        worker.execute(create_spec_variable, variable, cb)
-
-    def __removeVariable(self, variable):
-        del self.__variables[variable]
-        self.remove_attribute(variable)
+        v = SpecVariable.SpecVariableA(callbacks=cb)
+        self.__variables[variable] = v, update
+        v.connectToSpec(variable, self.Spec,
+                        dispatchMode=SpecEventsDispatcher.FIREEVENT)
 
     def __appendCommandHistory(self, cmd):
         """
@@ -683,7 +668,7 @@ class Spec(Device):
         history.append(cmd)
         while len(history) > self.CommandHistoryMaxLength:
             history.pop(0)
-        execute(self.push_change_event, "CommandHistory",[cmd])
+        self.push_change_event("CommandHistory", [cmd])
 
 
 

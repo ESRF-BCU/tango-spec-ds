@@ -15,20 +15,16 @@ import time
 import logging
 from functools import partial
 
-from PyTango import DevState, DispLevel, AttrWriteType, AttrQuality
-from PyTango import MultiAttrProp
-from PyTango import DebugIt
-from PyTango.server import Device, DeviceMeta, attribute, command
-from PyTango.server import device_property
-
-import gevent
+from PyTango import (DevState, DispLevel, AttrWriteType, AttrQuality,
+                     MultiAttrProp, DebugIt)
+from PyTango.server import (Device, DeviceMeta, attribute, command,
+                            device_property)
 
 from SpecClient_gevent.SpecMotor import SpecMotorA
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-from TangoSpec.TgGevent import get_proxy
-from TangoSpec.SpecCommon import SpecMotorState_2_TangoState
-from TangoSpec.SpecCommon import execute, switch_state, get_spec_names
+from TangoSpec.SpecCommon import (SpecMotorState_2_TangoState, switch_state,
+                                  find_spec_name)
 
 
 #: read-write scalar float attribute helper
@@ -87,6 +83,8 @@ class SpecMotor(Device):
     def get_spec_motor_name(self):
         return self.__spec_motor_name
 
+    get_spec_name = get_spec_motor_name
+
     def delete_device(self):
         Device.delete_device(self)
         self.__spec_motor = None
@@ -95,7 +93,7 @@ class SpecMotor(Device):
         self.__log = logging.getLogger(self.get_name())
         Device.init_device(self)
         self.set_change_event("State", True, True)
-        self.set_change_event("Status", True, False)
+        self.set_change_event("Status", True, True)
         self.set_change_event("Position", True, False)
         self.set_change_event("StepSize", True, False)
 
@@ -107,26 +105,10 @@ class SpecMotor(Device):
         self.__spec_version_name = None
         self.__step_size = 1
 
-        try:
-            host, session, motor = self.SpecMotor.split(":")
-            spec_version = "%s:%s" % (host, session)
-        except ValueError:
-            specs = get_spec_names()
-            if not specs:
-                status = "Wrong SpecMotor property: Not inside a " \
-                         "Spec. Need the full SpecMotor name"
-                switch_state(self, DevState.FAULT, status)
-                return
-            elif len(specs) > 1:
-                status = "Wrong SpecMotor property: More than one " \
-                         "Spec in tango server. Need the full " \
-                         "SpecMotor name"
-                switch_state(self, DevState.FAULT, status)
-                return
-            else:
-                spec_version = specs[0]
-                motor = self.SpecMotor
-
+        spec_info = find_spec_name(self, self.SpecMotor)
+        if spec_info is None:
+            return
+        spec_version, motor = spec_info
         self.__spec_version_name = spec_version
         self.__spec_motor_name = motor
 
@@ -138,16 +120,13 @@ class SpecMotor(Device):
 
         try:
             self.__log.debug("Start creating Spec motor %s", motor)
-            self.__spec_motor = get_proxy(SpecMotorA, callbacks=cb)
+            self.__spec_motor = SpecMotorA(callbacks=cb)
         except SpecClientError as spec_error:
             status = "Error creating Spec motor {0}".format(motor)
             switch_state(self, DevState.FAULT, status)
         else:
             self.__motorConnect()
         self.__log.debug("End creating Spec motor %s", motor)
-
-    def always_executed_hook(self):
-        pass
 
     def __motorConnect(self):
         motor = self.__spec_motor_name
@@ -174,10 +153,10 @@ class SpecMotor(Device):
     def __motorPositionChanged(self, position):
         state = self.get_state()
         if state == DevState.MOVING:
-            execute(self.push_change_event, "Position", position,
-                    time.time(), AttrQuality.ATTR_CHANGING)
+            self.push_change_event("Position", position, time.time(),
+                                   AttrQuality.ATTR_CHANGING)
         else:
-            execute(self.push_change_event, "Position", position)
+            self.push_change_event("Position", position)
 
     def __motorStateChanged(self, spec_state):
         old_state = self.get_state()
@@ -186,15 +165,12 @@ class SpecMotor(Device):
         # Fire a position event with VALID quality
         if old_state == DevState.MOVING and state != DevState.MOVING:
             position = self.__spec_motor.getPosition()
-            execute(self.push_change_event, "Position", position)
+            self.push_change_event("Position", position)
 
         # switch tango state and status attributes and send events
         switch_state(self, state, "Motor is now {0}".format(state))
 
     def __motorLimitsChanged(self):
-        execute(self.__updateLimitsSafe)
-
-    def __updateLimitsSafe(self):
         try:
             self.__updateLimits()
         except:

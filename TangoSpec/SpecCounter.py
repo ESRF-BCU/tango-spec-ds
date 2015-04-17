@@ -9,24 +9,21 @@
 # See LICENSE.txt for more info.
 #---------------------------------------------------------------------
 
-"""A TANGO device server for SPEC based on SpecClient."""
+"""A TANGO counter device for SPEC based on SpecClient."""
 
 import time
 import logging
 
-from PyTango import DevState, CmdArgType
-from PyTango import AttrWriteType, AttrQuality
-from PyTango import DebugIt
-from PyTango.server import Device, DeviceMeta, attribute, command
-from PyTango.server import device_property
+from PyTango import DevState, AttrWriteType, AttrQuality, DebugIt
+from PyTango.server import (Device, DeviceMeta, attribute, command,
+                            device_property)
 
 from SpecClient_gevent.SpecCounter import SpecCounterA
 from SpecClient_gevent.SpecClientError import SpecClientError
 
-from TangoSpec.TgGevent import get_proxy
-from TangoSpec.SpecCommon import SpecCounterState_2_TangoState
-from TangoSpec.SpecCommon import SpecCounterType_2_str
-from TangoSpec.SpecCommon import execute, switch_state, get_spec_names
+from TangoSpec.SpecCommon import (SpecCounterState_2_TangoState,
+                                  SpecCounterType_2_str,
+                                  switch_state, find_spec_name)
 
 
 class SpecCounter(Device):
@@ -52,6 +49,8 @@ class SpecCounter(Device):
     def get_spec_counter_name(self):
         return self.__spec_counter_name
 
+    get_spec_name = get_spec_counter_name
+
     @DebugIt()
     def delete_device(self):
         Device.delete_device(self)
@@ -62,7 +61,7 @@ class SpecCounter(Device):
         self.__log = logging.getLogger(self.get_name())
         Device.init_device(self)
         self.set_change_event("State", True, True)
-        self.set_change_event("Status", True, False)
+        self.set_change_event("Status", True, True)
         self.set_change_event("Value", True, False)
 
         switch_state(self, DevState.INIT,
@@ -72,26 +71,10 @@ class SpecCounter(Device):
         self.__spec_counter_name = None
         self.__spec_version_name = None
 
-        try:
-            host, session, counter = self.SpecCounter.split(":")
-            spec_version = "%s:%s" % (host, session)
-        except ValueError:
-            specs = get_spec_names()
-            if not specs:
-                status = "Wrong SpecCounter property: Not inside a " \
-                         "Spec. Need the full SpecCounter name"
-                switch_state(self, DevState.FAULT, status)
-                return
-            elif len(specs) > 1:
-                status = "Wrong SpecCounter property: More than " \
-                         "one Spec in tango server. Need the full " \
-                         "SpecCounter name"
-                switch_state(self, DevState.FAULT, status)
-                return
-            else:
-                spec_version = specs[0]
-                counter = self.SpecCounter
-
+        spec_info = find_spec_name(self, self.SpecCounter)
+        if spec_info is None:
+            return
+        spec_version, counter = spec_info
         self.__spec_version_name = spec_version
         self.__spec_counter_name = counter
 
@@ -101,7 +84,7 @@ class SpecCounter(Device):
                   counterStateChanged=self.__counterStateChanged)
         try:
             self.__log.debug("Start creating Spec counter %s", counter)
-            self.__spec_counter = get_proxy(SpecCounterA, callbacks=cb)
+            self.__spec_counter = SpecCounterA(callbacks=cb)
         except SpecClientError as spec_error:
             status = "Error creating Spec counter {0}".format(counter)
             switch_state(self, DevState.FAULT, status)
@@ -153,19 +136,19 @@ class SpecCounter(Device):
             # Fire a value event with VALID quality
             if old_state != DevState.RUNNING and state == DevState.RUNNING:
                 value = sc.getValue()
-                execute(self.push_change_event, "Value", value,
-                        time.time(), AttrQuality.ATTR_CHANGING)
+                self.push_change_event("Value", value, time.time(),
+                                       AttrQuality.ATTR_CHANGING)
             elif old_state == DevState.RUNNING and state != DevState.RUNNING:
                 value = sc.getValue()
-                execute(self.push_change_event, "Value", value)
+                self.push_change_event("Value", value)
 
 
     def __counterValueChanged(self, value):
         if self.get_state() == DevState.RUNNING:
-            execute(self.push_change_event, "Value", value,
-                    time.time(), AttrQuality.ATTR_CHANGING)
+            self.push_change_event("Value", value, time.time(),
+                                   AttrQuality.ATTR_CHANGING)
         else:
-            execute(self.push_change_event, "Value", value)
+            self.push_change_event("Value", value)
 
     def read_Value(self):
         return self.spec_counter.getValue()
