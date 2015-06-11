@@ -42,7 +42,8 @@ class SpecMotor(Device):
                                     "along with a Spec it can be "
                                     "just the motor name")
 
-    Position = float_rw_mem_attr(doc="motor position")
+    Position = float_rw_mem_attr(doc="motor position", unit="mm",
+                                 display_unit="mm", standard_unit="mm")
 
     DialPosition = attribute(dtype=float, access=AttrWriteType.READ,
                              doc="motor dial position",
