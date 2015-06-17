@@ -111,8 +111,6 @@ class Spec(Device):
         self.__spec_tty = None
         self.__variables = None
 
-
-
     @DebugIt()
     def init_device(self):
         self.__log = logging.getLogger(self.get_name())
@@ -192,17 +190,17 @@ class Spec(Device):
         dbg("Finished creating Spec %s", spec_name)
 
     def __addVariableInit(self, variable):
+        variable_info = variable.split()
         try:
-            self.__addVariable(variable)
+            self.__addVariable(*variable_info)
         except SpecClientError as spec_error:
-            seerr("Error creating variable %s", variable)
-            dbg("Details:", exc_info=1)
-            msg = "Error adding variable '%s': %s" % (variable,
+            self.__log.error("Error creating variable %s", variable_info[0])
+            self.__log.debug("Details:", exc_info=1)
+            msg = "Error adding variable '%s': %s" % (variable_info[0],
                                                       str(spec_error))
             switch_state(self, DevState.FAULT, self.get_status + "\n" + msg)
 
     def __onUpdateOutput(self, output):
-
         if isinstance(output, numbers.Number):
             text = "{0:12}\n".format(output)
         else:
@@ -367,27 +365,33 @@ class Spec(Device):
         self.__log.debug("Abort command %s", cmd_name)
         spec_cmd.abort()
 
-    @command(dtype_in=str, doc_in="spec variable name")
-    def AddVariable(self, variable_name):
+    @command(dtype_in=(str,),
+             doc_in="spec variable name [, tango attribute name]")
+    def AddVariable(self, var_info):
         """
         Export a SPEC_ variable to Tango by adding a new attribute
         to this device with the same name as the variable.
 
-        :param variable_name:
-            SPEC_ variable name to be exported as a TANGO_ attribute
-        :type variable_name: str
+        :param var_info:
+            sequence of strings with the following syntax:
+            spec variable name [, tango attribute name]
+        :type variable_info: sequence<str>
         :throws PyTango.DevFailed:
             If the variable is already exposed in this TANGO_ DS.
         """
-        self.__log.info("Adding new variable %s...", variable_name)
-        if variable_name in self.__variables:
+        if len(var_info) < 2:
+            var_info = 2*var_info
+        var_name, var_tango_name = var_info
+        self.__log.info("Adding new spec variable %s as %s...", var_name,
+                        var_tango_name)
+        if var_name in self.__variables:
             raise Exception("Variable '%s' is already defined as an attribute!" %
-                            (variable_name,))
+                            (var_name,))
 
         try:
-            self.__addVariable(variable_name)
+            self.__addVariable(*var_info)
         except SpecClientError as error:
-            status = "Error adding variable '%s': %s" % (variable_name, str(error))
+            status = "Error adding variable '%s': %s" % (var_name, str(error))
             switch_state(self, DevState.FAULT, status)
             raise
 
@@ -400,22 +404,26 @@ class Spec(Device):
         self.__log.info("Finished adding new variable")
 
     @command(dtype_in=str, doc_in="spec variable name")
-    def RemoveVariable(self, variable_name):
+    def RemoveVariable(self, var_name):
         """
         Unexposes the given variable from this device.
 
-        :param variable_name: the name of the SPEC_ variable to be removed
-        :type variable_name: str
+        :param var_name:
+            the name of the TANGO_ attribute corresponding to a SPEC_ variable
+        :type var_name: str
         :throws PyTango.DevFailed:
             If the variable is not exposed in this TANGO_ DS
         """
-        self.__log.info("Removing variable %s...", variable_name)
-        if variable_name not in self.__variables:
+        self.__log.info("Removing variable %s...", var_name)
+        for tango_var_name, (var, _) in self.__variables.items():
+            if var.varName == var_name:
+                break
+        else:
             raise Exception("Variable '%s' is not defined as an attribute!" %
-                            (variable_name,))
+                            (var_name,))
 
-        del self.__variables[variable]
-        self.remove_attribute(variable)
+        del self.__variables[tango_var_name]
+        self.remove_attribute(tango_var_name)
 
         # update property in the database
         db = Util.instance().get_database()
@@ -621,39 +629,46 @@ class Spec(Device):
         return self.__get_ElementList("Counter")
 
     def __get_VariableList(self):
-        return sorted(self.__variables)
+        vl = []
+        for var_tango_name in sorted(self.__variables):
+            var, _ = self.__variables[var_tango_name]
+            vl.append("{0} {1}".format(var.varName, var_tango_name))
+        return vl
 
-    def __addVariable(self, variable):
-        self.__log.debug("Adding variable %s", variable)
+    def __addVariable(self, var_name, var_tango_name=None):
+        if var_tango_name is None:
+            var_tango_name = var_name
+        self.__log.debug("Adding variable %s as %s", var_name, var_tango_name)
         multi_attr = self.get_device_attr()
         has_attr = True
         try:
-            multi_attr.get_attr_by_name(variable)
+            multi_attr.get_attr_by_name(var_tango_name)
         except:
             has_attr = False
 
         if not has_attr:
-            self.__log.debug("Creating attribute for variable %s", variable)
-            attr = attribute(name=variable, dtype=str,
-                             access=AttrWriteType.READ_WRITE,
-                             doc="spec variable '{0}' (string in JSON format)",
+            self.__log.debug("Creating attribute %s for variable %s",
+                             var_tango_name, var_name)
+            doc = "spec variable '{0}' (string in JSON format)".format(var_name)
+            attr = attribute(name=var_tango_name, dtype=str,
+                             access=AttrWriteType.READ_WRITE, doc=doc,
                              fget=self.read_Variable, fset=self.write_Variable,
                              display_level=DispLevel.EXPERT)
             self.__log.debug("Registering attribute for variable '%s'...",
-                             variable)
+                             var_name)
             self.add_attribute(attr)
-            attr_obj = self.get_device_attr().get_attr_by_name(variable)
+            attr_obj = self.get_device_attr().get_attr_by_name(var_tango_name)
             attr_obj.set_change_event(True, False)
 
-        self.__log.debug("Connecting to spec for variable '%s'...", variable)
+        self.__log.debug("Connecting to spec for variable '%s'...", var_name)
         def update(value):
-            self.__log.debug("start update variable '%s' value...", variable)
-            self.push_change_event(variable, json.dumps(value))
-            self.__log.debug("finish update variable '%s' value", variable)
+            self.__log.debug("start update variable '%s' value...", var_name)
+            self.push_change_event(var_tango_name, json.dumps(value))
+            self.__log.debug("finish update variable '%s' value", var_name)
         cb = dict(update=update)
         v = SpecVariable.SpecVariableA(callbacks=cb)
-        self.__variables[variable] = v, update
-        v.connectToSpec(variable, self.Spec,
+        self.__variables[var_tango_name] = v, update
+        v.connectToSpec(var_name, self.Spec,
                         dispatchMode=SpecEventsDispatcher.FIREEVENT)
 
     def __appendCommandHistory(self, cmd):
