@@ -228,7 +228,10 @@ Example how to expose a SPEC_ variable called *FF_DIR*::
     >>> fourc = PyTango.DeviceProxy("ID00/SPEC/Fourc")
 
     >>> # expose a variable called 'FF_DIR'
-    >>> fourc.AddVariable("FF_DIR")
+    >>> fourc.AddVariable(["FF_DIR"])
+
+    >>> # expose a variable called 'FF_DIR' as a an attribute called 'Fullfield_DIR'
+    >>> fourc.AddVariable(["FF_DIR", "Fullfield_DIR"])
 
 .. note::
 
