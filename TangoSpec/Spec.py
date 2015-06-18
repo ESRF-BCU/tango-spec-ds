@@ -96,7 +96,7 @@ class Spec(Device):
 
     ## Version: TangoSpec version
     Version = attribute(dtype=str, access=AttrWriteType.READ)
-    
+
     def __init__(self, *args, **kwargs):
         self.__cmd_line = False
         self.__remove_line = False
@@ -765,8 +765,78 @@ def reconstruct_init():
     reconstruct(spec_dev)
 
 
-def run(**kwargs):
-    """Runs the Spec device server"""
+def new_instance(instance_name="spec"):
+    """Creates a new server instance in the database from user input
+    (and optionally starts it)"""
+    try:
+        __new_instance(instance_name=instance_name)
+    except KeyboardInterrupt:
+        print("\nCtrl-C pressed. Exiting...")
+
+
+def __new_instance(instance_name="spec"):
+    from PyTango import Database, DbDevInfo
+    db = Database()
+    servers = [s.rsplit("/", 1)[1] for s in db.get_server_list("TangoSpec/*")]
+
+    # ask for server instance name
+    name = instance_name
+    while name in servers or not name:
+        if name in servers:
+            print("'{0}' already registered in database. Please choose another".format(name))
+        if instance_name:
+            msg = "new instance name [{0}]: ".format(instance_name)
+        else:
+            msg = "new instance name: "
+        name = raw_input(msg)
+        if not name:
+            name = instance_name
+
+    serv_name = "TangoSpec/{0}".format(name)
+
+    # get hostname (simplified)
+    import platform
+    node = platform.node()
+
+    # ask spec session name
+    dft_session = "{0}:{1}".format(platform.node(), name)
+    session = raw_input("spec session (<host>:<session/port>) [{0}]: ".format(dft_session)) or dft_session
+
+    # ask spec device name
+    dft_dev_name = "spec/{0}/{1}".format(*session.split(":"))
+    dev_name = raw_input("spec device name [{0}]: ".format(dft_dev_name)) or dft_dev_name
+
+    # register device in tango database
+    dev_info = DbDevInfo()
+    dev_info.name = dev_name
+    dev_info._class = "Spec"
+    dev_info.server = serv_name
+    db.add_device(dev_info)
+
+    # add spec session property
+    db.put_device_property(dev_name, dict(Spec=session))
+
+    # if alias is not taken by another device, add it
+    alias = None
+    try:
+        db.get_device_alias(name)
+    except:
+        alias = name
+        db.put_device_alias(dev_name, alias)
+
+    if alias:
+        alias = " (and alias '{0}')".format(alias)
+    print("\nSuccessfully created '{0}' server".format(serv_name))
+    print("  ...with spec device '{0}'{1}".format(serv_name, alias))
+    print("  ...connected to spec session '{0}'".format(session))
+
+    a = raw_input("\nDo you want to start the server now [Y/n]: ") or 'y'
+    if a.lower() == 'y':
+        run_server(args=['TangoSpec', name], verbose=True)
+
+
+def run_server(**kwargs):
+    """Runs the TangoSpec device server"""
     from PyTango.server import run
     from .SpecMotor import SpecMotor
     from .SpecCounter import SpecCounter
@@ -782,6 +852,18 @@ def run(**kwargs):
     kwargs['green_mode'] = GreenMode.Gevent
     run(classes, **kwargs)
 
+
+def run(**kwargs):
+    import sys
+    try:
+        new_arg_idx = sys.argv.index("--new")
+        if len(sys.argv) > new_arg_idx+1:
+            instance_name=sys.argv[new_arg_idx+1]
+        else:
+            instance_name = None
+        new_instance(instance_name=instance_name)
+    except ValueError:
+        run_server(**kwargs)
 
 if __name__ == '__main__':
     run(verbose=True)
