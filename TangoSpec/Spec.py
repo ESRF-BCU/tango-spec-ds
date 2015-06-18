@@ -94,6 +94,9 @@ class Spec(Device):
     CommandHistory = str_1D_attr(doc="List of spec commands executed from "
                                  "this server")
 
+    ## Version: TangoSpec version
+    Version = attribute(dtype=str, access=AttrWriteType.READ)
+    
     def __init__(self, *args, **kwargs):
         self.__cmd_line = False
         self.__remove_line = False
@@ -266,6 +269,10 @@ class Spec(Device):
 
     def read_CommandHistory(self):
         return self.__command_history
+
+    def read_Version(self):
+        import TangoSpec
+        return TangoSpec.__version__
 
     # ----------------------------------------------------------------
     # Tango Commands
