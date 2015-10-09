@@ -26,6 +26,7 @@ from PyTango import DevState, Util, Attr, Except, DevFailed
 from PyTango import CmdArgType, AttrWriteType, DispLevel, DebugIt
 from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
+from PyTango.server import get_worker
 
 from SpecClient_gevent import Spec as _Spec
 from SpecClient_gevent import SpecCommand
@@ -256,14 +257,22 @@ class Spec(Device):
     @DebugIt()
     def read_Variable(self, attr):
         v_name = attr.get_name()
-        self.__log.debug("read variable %s", v_name)
-        value = self.__variables[v_name][0].getValue()
+        worker = get_worker()
+        value = worker.execute(self.__read_Variable, v_name)
         attr.set_value(json.dumps(value))
+
+    def __read_Variable(self, v_name):
+        self.__log.debug("read variable %s", v_name)
+        return self.__variables[v_name][0].getValue()
 
     @DebugIt()
     def write_Variable(self, attr):
         v_name, value = attr.get_name(), attr.get_write_value()
         value = json.loads(value)
+        worker = get_worker()
+        worker.execute(self.__write_Variable, v_name, value)
+
+    def __write_Variable(self, v_name, value):
         self.__log.debug("set %s = %s", v_name, value)
         self.__variables[v_name][0].setValue(value)
 
@@ -576,9 +585,11 @@ class Spec(Device):
                 "Unknown {0} '{1}'".format(etype_lower, spec_name),
                 "Spec.Add{0}".format(etype))
 
-        dev_name = self.get_name().rsplit("/", 1)[0] + "/" + spec_name
         if len(element_info) > 1:
             dev_name = element_info[1]
+        else:
+            d, f, m = self.get_name().split("/")
+            dev_name = "{0}/{1}_{2}/{3}".format(d, f, m, spec_name)
 
         element_alias = spec_name
         if len(element_info) > 2:
