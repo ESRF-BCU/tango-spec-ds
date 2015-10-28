@@ -15,7 +15,11 @@ import re
 import json
 import logging
 import numbers
+import weakref
 from functools import partial
+
+import gevent
+from gevent.backdoor import BackdoorServer
 
 from PyTango import requires_pytango
 
@@ -62,6 +66,9 @@ class Spec(Device):
     Motors = device_property(dtype=[str], default_value=[],
         doc="List of registered SPEC motors to create "
             "(examples: tth, energy, phi)")
+
+    BackDoorPort = device_property(dtype=int, default_value=0,
+        doc="gevent backdoor port")
 
     Counters = device_property(dtype=[str], default_value=[],
         doc="List of registered SPEC counters to create "
@@ -114,6 +121,8 @@ class Spec(Device):
         self.__spec = None
         self.__spec_tty = None
         self.__variables = None
+        if self.__backdoor:
+            self.__backdoor.stop()
 
     @DebugIt()
     def init_device(self):
@@ -131,6 +140,8 @@ class Spec(Device):
         self.__variables = dict()
         self.__executing_commands = dict()
         self.__command_history = []
+        self.__backdoor = None
+        self.__backdoor_greenlet = None
 
         self.set_change_event("State", True, True)
         self.set_change_event("Status", True, False)
@@ -167,6 +178,15 @@ class Spec(Device):
             switch_state(self, DevState.FAULT, status)
             self.__constructing = False
             return
+
+        if self.BackDoorPort:
+            listener = '127.0.0.1', self.BackDoorPort
+            banner = "Welcome to TangoSpec '{0}' console".format(self.Spec)
+            locals = dict(device=weakref.ref(self),
+                          spec=weakref.ref(self.__spec))
+            self.__backdoor = BackdoorServer(listener, banner=banner,
+                                             locals=locals)
+            self.__backdoor_greenlet = gevent.spawn(self.__backdoor.serve_forever)
 
         cb = dict(update=self.__onUpdateOutput)
         try:
