@@ -116,8 +116,8 @@ class SpecMotor(Device):
         cb=dict(connected=self.__motorConnected,
                 disconnected=self.__motorDisconnected,
                 motorPositionChanged=self.__motorPositionChanged,
-                motorStateChanged=self.__motorStateChanged,
-                motorLimitsChanged=self.__motorLimitsChanged)
+                motorStateChanged=self.__motorStateChanged)
+                #motorLimitsChanged=self.__motorLimitsChanged)
 
         try:
             self.__log.debug("Start creating Spec motor %s", motor)
