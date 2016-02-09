@@ -18,19 +18,23 @@ import numbers
 import weakref
 from functools import partial
 
+import numpy
+
 import gevent
 from gevent.backdoor import BackdoorServer
 
 from PyTango import requires_pytango
 
-requires_pytango("8.1.7", software_name="TangoSpec")
+requires_pytango("8.1.9", software_name="TangoSpec")
 
 from PyTango import GreenMode
 from PyTango import DevState, Util, Attr, Except, DevFailed
 from PyTango import CmdArgType, AttrWriteType, DispLevel, DebugIt
+from PyTango import AttrDataFormat
 from PyTango.server import Device, DeviceMeta, attribute, command
 from PyTango.server import device_property
 from PyTango.server import get_worker
+from PyTango.utils import is_non_str_seq
 
 from SpecClient_gevent import Spec as _Spec
 from SpecClient_gevent import SpecCommand
@@ -45,6 +49,20 @@ str_1D_attr = partial(attribute, dtype=[str], access=AttrWriteType.READ,
                       max_dim_x=512)
 
 _SpecCmdLineRE = re.compile("\\n*(?P<line>\d+)\.(?P<session>\w+)\>\s*")
+
+
+def get_tango_type_format(dtype):
+    if dtype == 'json':
+        return str, json.dumps, json.loads
+    try:
+        dtype = eval(dtype)
+        if is_non_str_seq(dtype):
+            s_2_t = t_2_s = lambda x: x
+            return dtype, s_2_t, t_2_s
+        return dtype, dtype, dtype
+    except:
+        pass
+    return dtype, str, str
 
 
 class Spec(Device):
@@ -96,7 +114,8 @@ class Spec(Device):
     VariableList = str_1D_attr(doc="List of SPEC variables")
 
     ## Spec output
-    Output = attribute(dtype=str, access=AttrWriteType.READ)
+    Output = attribute(dtype=str, access=AttrWriteType.READ,
+                       display_level=DispLevel.EXPERT)
 
     ## Command history
     CommandHistory = str_1D_attr(doc="List of spec commands executed from "
@@ -137,6 +156,7 @@ class Spec(Device):
         self.__spec = None
         self.__spec_tty = None
         self.__output = []
+        # dict<tango attr name: [SpecVariable, callback, info, enc_f, dec_f]>
         self.__variables = dict()
         self.__executing_commands = dict()
         self.__command_history = []
@@ -214,9 +234,15 @@ class Spec(Device):
         dbg("Finished creating Spec %s", spec_name)
 
     def __addVariableInit(self, variable):
-        variable_info = variable.split()
+        if variable.startswith('{'): # new style
+            info = json.loads(variable)
+        else:
+            variable_info = variable.split()
+            info = dict([item.split('=') for item in variable_info[2:]])
+            info['name'], info['attr_name'] = variable_info[:2]
+
         try:
-            self.__addVariable(*variable_info)
+            self.__addVariable(info)
         except SpecClientError as spec_error:
             self.__log.error("Error creating variable %s", variable_info[0])
             self.__log.debug("Details:", exc_info=1)
@@ -277,24 +303,29 @@ class Spec(Device):
     @DebugIt()
     def read_Variable(self, attr):
         v_name = attr.get_name()
+        spec_variable, _, info, spec_to_tango, _ = self.__variables[v_name]
         worker = get_worker()
-        value = worker.execute(self.__read_Variable, v_name)
-        attr.set_value(json.dumps(value))
+        with worker.get_context(self):
+            value = worker.execute(self.__read_Variable, spec_variable)
+        value = spec_to_tango(value)
+        attr.set_value(value)
 
-    def __read_Variable(self, v_name):
-        self.__log.debug("read variable %s", v_name)
-        return self.__variables[v_name][0].getValue()
+    def __read_Variable(self, spec_variable):
+        self.__log.debug("read variable %s", spec_variable.varName)
+        return spec_variable.getValue()
 
     @DebugIt()
     def write_Variable(self, attr):
         v_name, value = attr.get_name(), attr.get_write_value()
-        value = json.loads(value)
+        spec_variable, _, info, _, tango_to_spec = self.__variables[v_name]
+        value = tango_to_spec(value)
         worker = get_worker()
-        worker.execute(self.__write_Variable, v_name, value)
+        with worker.get_context(self):
+            worker.execute(self.__write_Variable, spec_variable, value)
 
-    def __write_Variable(self, v_name, value):
-        self.__log.debug("set %s = %s", v_name, value)
-        self.__variables[v_name][0].setValue(value)
+    def __write_Variable(self, spec_variable, value):
+        self.__log.debug("set %s = %s", spec_variable.varName, value)
+        spec_variable.setValue(value)
 
     def read_CommandHistory(self):
         return self.__command_history
@@ -401,39 +432,28 @@ class Spec(Device):
         self.__log.debug("Abort command %s", cmd_name)
         spec_cmd.abort()
 
-    @command(dtype_in=(str,),
-             doc_in="spec variable name [, tango attribute name]")
+    @command(dtype_in=str, doc_in='json format: dict(name, attr_name, type, label, unit, format, ...)')
     def AddVariable(self, var_info):
-        """
-        Export a SPEC_ variable to Tango by adding a new attribute
-        to this device with the same name as the variable.
+        var_info = json.loads(var_info)
+        name = var_info['name']
+        attr_name = var_info.get('attr_name', name)
+        dtype = var_info.get('type', 'json')
 
-        :param var_info:
-            sequence of strings with the following syntax:
-            spec variable name [, tango attribute name]
-        :type variable_info: sequence<str>
-        :throws PyTango.DevFailed:
-            If the variable is already exposed in this TANGO_ DS.
-        """
-        if len(var_info) < 2:
-            var_info = 2*var_info
-        var_name, var_tango_name = var_info
-        self.__log.info("Adding new spec variable %s as %s...", var_name,
-                        var_tango_name)
-        if var_name in self.__variables:
+        self.__log.info("Adding new spec variable %s as %s...", name, attr_name)
+        if name in self.__variables:
             raise Exception("Variable '%s' is already defined as an attribute!" %
-                            (var_name,))
+                            (name,))
 
         try:
-            self.__addVariable(*var_info)
+            self.__addVariable(var_info)
         except SpecClientError as error:
-            status = "Error adding variable '%s': %s" % (var_name, str(error))
+            status = "Error adding variable '%s': %s" % (name, str(error))
             switch_state(self, DevState.FAULT, status)
             raise
 
         # update property in the database
         db = Util.instance().get_database()
-        variables = self.__get_VariableList()
+        variables = self.__get_VariableListEx()
         db.put_device_property(self.get_name(), {"Variables" : variables})
 
         self.push_change_event("VariableList", variables)
@@ -451,7 +471,8 @@ class Spec(Device):
             If the variable is not exposed in this TANGO_ DS
         """
         self.__log.info("Removing variable %s...", var_name)
-        for tango_var_name, (var, _) in self.__variables.items():
+        for tango_var_name, var_info in self.__variables.items():
+            var = var_info[0]
             if var.varName == var_name:
                 break
         else:
@@ -463,7 +484,7 @@ class Spec(Device):
 
         # update property in the database
         db = Util.instance().get_database()
-        variables = self.__get_VariableList()
+        variables = self.__get_VariableListEx()
         db.put_device_property(self.get_name(), {"Variables" : variables})
 
         self.push_change_event("VariableList", variables)
@@ -669,13 +690,20 @@ class Spec(Device):
     def __get_VariableList(self):
         vl = []
         for var_tango_name in sorted(self.__variables):
-            var, _ = self.__variables[var_tango_name]
+            var = self.__variables[var_tango_name][0]
             vl.append("{0} {1}".format(var.varName, var_tango_name))
         return vl
 
-    def __addVariable(self, var_name, var_tango_name=None):
-        if var_tango_name is None:
-            var_tango_name = var_name
+    def __get_VariableListEx(self):
+        vl = []
+        for var_tango_name in sorted(self.__variables):
+            info = self.__variables[var_tango_name][2]
+            vl.append(json.dumps(info))
+        return vl
+
+    def __addVariable(self, var_info):
+        var_name = str(var_info['name'])
+        var_tango_name = str(var_info.get('attr_name', var_name))
         self.__log.debug("Adding variable %s as %s", var_name, var_tango_name)
         multi_attr = self.get_device_attr()
         has_attr = True
@@ -684,28 +712,42 @@ class Spec(Device):
         except:
             has_attr = False
 
+        dtype = var_info.get('type', 'json')
+        access = getattr(AttrWriteType, var_info.setdefault('access',
+                                                            'READ_WRITE'))
+        display_level = getattr(DispLevel, var_info.setdefault('display_level',
+                                                               'OPERATOR'))
+
+        tg_type, spec_to_tango, tango_to_spec = get_tango_type_format(dtype)
+
         if not has_attr:
             self.__log.debug("Creating attribute %s for variable %s",
                              var_tango_name, var_name)
-            doc = "spec variable '{0}' (string in JSON format)".format(var_name)
-            attr = attribute(name=var_tango_name, dtype=str,
-                             access=AttrWriteType.READ_WRITE, doc=doc,
+            doc = "spec variable '{0}'".format(var_name)
+            if dtype == u'json':
+                doc += ' (json format)'
+            attr = attribute(name=var_tango_name, dtype=tg_type, access=access,
+                             doc=doc, display_level=display_level,
                              fget=self.read_Variable, fset=self.write_Variable,
-                             display_level=DispLevel.EXPERT)
+                             max_dim_x=65535, max_dim_y=65535)
             self.__log.debug("Registering attribute for variable '%s'...",
                              var_name)
             self.add_attribute(attr)
             attr_obj = self.get_device_attr().get_attr_by_name(var_tango_name)
-            attr_obj.set_change_event(True, False)
+            if not is_non_str_seq(tg_type):
+                attr_obj.set_change_event(True, False)
 
         self.__log.debug("Connecting to spec for variable '%s'...", var_name)
         def update(value):
             self.__log.debug("start update variable '%s' value...", var_name)
-            self.push_change_event(var_tango_name, json.dumps(value))
+            self.__log.debug("variable=%s (type=%s)", value, type(value))
+            value = spec_to_tango(value)
+            self.push_change_event(var_tango_name, value)
             self.__log.debug("finish update variable '%s' value", var_name)
         cb = dict(update=update)
-        v = SpecVariable.SpecVariableA(callbacks=cb)
-        self.__variables[var_tango_name] = v, update
+        v = SpecVariable.SpecVariable(callbacks=cb)
+        self.__variables[var_tango_name] = v, update, var_info, \
+                                           spec_to_tango, tango_to_spec
         v.connectToSpec(var_name, self.Spec,
                         dispatchMode=SpecEventsDispatcher.FIREEVENT)
 
@@ -881,6 +923,7 @@ def run_server(**kwargs):
         post_init_cb = reconstruct_init
     kwargs['post_init_callback'] = post_init_cb
     kwargs['green_mode'] = GreenMode.Gevent
+
     run(classes, **kwargs)
 
 
