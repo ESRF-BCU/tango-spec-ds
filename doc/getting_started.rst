@@ -22,7 +22,7 @@ Download & install
 Dependencies
 ~~~~~~~~~~~~
 
-TangoSpec TANGO_ device server depends on PyTango_ and 
+TangoSpec TANGO_ device server depends on PyTango_ and
 `SpecClient_gevent <https://github.com/mxcube/specclient/>`_ packages.
 
 
@@ -104,7 +104,7 @@ Spec session reconstruction
 
 It is possible to synchronize the list of TANGO spec motors and counters with the list
 of motors and counters provided by Spec.
-To do this, simply execute the :meth:`~TangoSpec.Spec.Reconstruct` command provided 
+To do this, simply execute the :meth:`~TangoSpec.Spec.Reconstruct` command provided
 by the Spec TANGO_ device.
 After executing this command all motors and counters exported by SPEC_ will be
 present as TANGO_ devices. Example::
@@ -131,6 +131,11 @@ present as TANGO_ devices. Example::
 
     >>> # now there is a Tango device of class SpecMotor for each motor in the spec session:
     >>> energy = PyTango.DeviceProxy("ID00/SPEC/enery")
+
+.. warning::
+   this command will expose **all** counters and motors. It is recommended not to execute
+   this method when connecting to spec sessions which expose a great number of motors and/or
+   counters.
 
 .. _tangospec_expose_motor:
 
@@ -168,6 +173,8 @@ This can be done in Jive or from a python shell::
     >>> fourc.addMotor(["istopy", "a/b/istopy", "spec_istopy"])
     >>> phi = PyTango.DeviceProxy("spec_istopy") # or  PyTango.DeviceProxy("a/b/istopy")
 
+The new motor device will be available **even after the server is restarted**!
+
 .. _tangospec_expose_counter:
 
 Expose a counter
@@ -194,19 +201,21 @@ This can be done in Jive or from a python shell::
     c3
 
     >>> # creates a SpecCounter called 'ID00/SPEC/sec' and with alias 'sec'
-    >>>
+
     >>> fourc.addCounter(["sec"])
     >>> sec = PyTango.DeviceProxy("sec") # or  PyTango.DeviceProxy("ID00/SPEC/sec")
 
     >>> # creates a SpecCounter called 'a/b/sec' and with alias 'sec'
-    >>>
+
     >>> fourc.addCounter(["sec", "a/b/sec"])
     >>> theta = PyTango.DeviceProxy("sec") # or  PyTango.DeviceProxy("a/b/sec")
 
     >>> # creates a SpecCounter called 'a/b/det' and with alias 'spec_det'
-    >>>
+
     >>> fourc.addCounter(["det", "a/b/det", "spec_det"])
     >>> phi = PyTango.DeviceProxy("specdet") # or  PyTango.DeviceProxy("a/b/det")
+
+The new counter device will be available **even after the server is restarted**!
 
 .. _tangospec_expose_variable:
 
@@ -222,53 +231,66 @@ To expose an existing SPEC_ variable to TANGO_ just execute the TANGO_ command
 As a result, a new attribute with the same name as the SPEC_ variable name will
 be created in the *TangoSpec* device.
 
+The new attribute will be available **even after the server is restarted**!
+
+The :meth:`~TangoSpec.Spec.AddVariable` expects as argument a :mod:`json` dump of
+a python dictionary. The dictionary must contain the *name* key which corresponds
+to the spec variable name you want to create. Optionally it can contain the following
+keys with the correponding meaning:
+
+    * attr_name: tango attribute name (default is the same as the spec variable name)
+    * type: tango attribute type: '[u]int[16,32,64],', 'float[32,64]', 'bool', 'str'.
+      Can also be a 1D or 2D array of type (ex: '[float32]' for 1D array of float 32
+      bits, '[[uint64]]' for a 2D array of 64 bits unsigned integer). Default is 'json'
+      meaning tango attribute is a string where the value is a dump of the spec variable
+      value. You should use 'json' for associative arrays or variable which might change
+      type.
+    * access: tango access ('READ', 'READ_WRITE'). Default is 'READ_WRITE'
+    * display_level: tango display level ('OPERATOR', 'EXPERT'). Default is 'OPERATOR'
+
+
 Example how to expose a SPEC_ variable called *FF_DIR*::
 
+    >>> import json
     >>> import PyTango
     >>> fourc = PyTango.DeviceProxy("ID00/SPEC/Fourc")
 
     >>> # expose a variable called 'FF_DIR'
-    >>> fourc.AddVariable(["FF_DIR"])
+    >>> ff_dir_info = dict(name='FF_DIR')
+    >>> fourc.AddVariable(json.dumps(ff_dir_info))
 
-    >>> # expose a variable called 'FF_DIR' as a an attribute called 'Fullfield_DIR'
-    >>> fourc.AddVariable(["FF_DIR", "Fullfield_DIR"])
+    >>> # reading the newly created attribute: by default it is a json
+    >>> # encoded string, so we need to decode it first
+    >>> value = json.loads(fourc.FF_DIR)
+    >>> print(value)
+    {u'config': u'/users/homer/Fourc/config',
+     u'data': u'/users/homer/Fourc/data',
+     u'sample': u'niquel'}'
+
+    >>> # writing: encode first as a string and then send it
+    >>> FF_DIR = dict(config="/tmp/config", data="/tmp/data", sample="copper")
+    >>> fourc.FF_DIR = json.dumps(FF_DIR)
+
+    >>> # expose an int:
+    >>> scan_n_info = dict(name='SCAN_N', type='int32')
+    >>> fourc.AddVariable(json.dumps(scan_n_info))
+    >>> print(fourc.SCAN_N)
+    33
+
+    >>> # expose a 1D double array
+    >>> mca_info = dict(name='MCA_DATA', type='[float64]' access='READ')
+    >>> fourc.AddVariable(json.dumps(mca_info)
+
+    >>> # Reading yields directly a numpy array
+    >>> print(fourc.MCA_DATA)
+    array([ 0.,  0.,  0., ...,  0.,  0.,  0.]], dtype=float32)
 
 .. note::
 
     Spec sessions can contain literally thousands of variables. For this reason
-    neither the :ref:`auto discovery <tangospec_auto_discovery>` nor the 
+    neither the :ref:`auto discovery <tangospec_auto_discovery>` nor the
     :meth:`~TangoSpec.Spec.Reconstruct` command will expose spec variables
-    automatically to TANGO_
-
-.. _tangospec_readwrite_variable:
-
-Read/Write variables
---------------------
-
-The new TANGO_ attribute will a read-write scalar string.
-In order to be able to represent proper data types the string is encoded in
-:mod:`json` format. In order to read the value of a SPEC_ variable you must
-first decode it from :mod:`json`. Fortunately, :mod:`json` is a well known
-format. Example how to read the value of a previously exposed (see chapter above)
-SPEC_ variable called *FF_DIR* (the variable is an associative array)::
-
-    >>> import json
-    >>> FF_DIR = json.loads(fourc.FF_DIR)
-    >>> FF_DIR
-    {u'config': u'/users/homer/Fourc/config',
-     u'data': u'/users/homer/Fourc/data',
-     u'sample': u'niquel'}
-
-    >>> type(FF_DIR)
-    dict
-
-Notice that the value of FF_DIR is **not** a string but an actual dictionary.
-
-To write a new value into a SPEC_ variable the opposite operation needs to be
-performed. Example::
-
-    >>> FF_DIR = dict(config="/tmp/config", data="/tmp/data", sample="copper")
-    >>> fourc.FF_DIR = json.dumps(FF_DIR)
+    automatically to TANGO_.
 
 .. _tangospec_run_macro:
 
